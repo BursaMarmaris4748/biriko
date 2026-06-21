@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Updates from 'expo-updates';
 import { useAuth } from '@/services/auth-context';
 
 const SETTINGS = [
@@ -30,6 +32,7 @@ const SETTINGS = [
     section: 'Uygulama',
     items: [
       { icon: 'information-outline', label: 'Sürüm', value: '1.0.0', type: 'info' },
+      { icon: 'update', label: 'Güncellemeleri Kontrol Et', type: 'update' },
       { icon: 'file-document-outline', label: 'Kullanım Koşulları', type: 'link' },
       { icon: 'shield-check-outline', label: 'Gizlilik Politikası', type: 'link' },
     ],
@@ -38,8 +41,42 @@ const SETTINGS = [
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
+  const [updateChecking, setUpdateChecking] = useState(false);
   const kullaniciAdi = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Kullanıcı';
   const email = user?.email || '';
+
+  const checkForUpdates = async () => {
+    setUpdateChecking(true);
+    try {
+      if (!Updates.isEnabled) {
+        Alert.alert('Bilgi', 'Güncelleme kontrolü şu an kullanılamıyor.');
+        return;
+      }
+      const result = await Updates.checkForUpdateAsync();
+      if (result.isAvailable) {
+        Alert.alert(
+          'Güncelleme Mevcut',
+          'Yeni bir güncelleme var. İndirilsin mi?',
+          [
+            { text: 'İptal', style: 'cancel' },
+            {
+              text: 'İndir ve Uygula',
+              onPress: async () => {
+                await Updates.fetchUpdateAsync();
+                await Updates.reloadAsync();
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Güncel', 'Uygulamanız en son sürümde.');
+      }
+    } catch {
+      Alert.alert('Hata', 'Güncelleme kontrolü başarısız oldu.');
+    } finally {
+      setUpdateChecking(false);
+    }
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -97,8 +134,10 @@ export default function SettingsScreen() {
               {group.items.map((item, ii) => {
                 const isLast = ii === group.items.length - 1;
                 return (
-                  <TouchableOpacity
+                    <TouchableOpacity
                     key={ii}
+                    onPress={item.type === 'update' ? checkForUpdates : undefined}
+                    disabled={updateChecking}
                     className={`flex-row items-center justify-between px-4 py-4 ${!isLast ? 'border-b border-[#e8ecf4]' : ''}`}
                     activeOpacity={item.type === 'info' ? 1 : 0.6}
                   >
@@ -111,6 +150,13 @@ export default function SettingsScreen() {
                     )}
                     {item.type === 'link' && (
                       <MaterialCommunityIcons name="chevron-right" size={20} color="#c1c6d7" />
+                    )}
+                    {item.type === 'update' && (
+                      updateChecking ? (
+                        <ActivityIndicator size="small" color="#0058bc" />
+                      ) : (
+                        <MaterialCommunityIcons name="chevron-right" size={20} color="#c1c6d7" />
+                      )
                     )}
                   </TouchableOpacity>
                 );
