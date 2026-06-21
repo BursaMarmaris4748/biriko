@@ -1,24 +1,48 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import "../global.css";
+import { useSegments, useRouter, Slot } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { View, ActivityIndicator } from "react-native";
+import { AuthProvider, useAuth } from "@/services/auth-context";
+import { FinanceProvider } from "@/services/finance-context";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+function RootGuard({ children }: { children: React.ReactNode }) {
+  const { session, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+  useEffect(() => {
+    if (loading) return;
+
+    const inAuthGroup = segments[0] === 'auth';
+
+    if (!session && !inAuthGroup) {
+      router.replace('/auth/login');
+    } else if (session && inAuthGroup) {
+      router.replace('/(tabs)');
+    }
+  }, [session, loading, segments, router]);
+
+  if (loading) {
+    return (
+      <View className="flex-1 bg-[#f2f5f9] items-center justify-center">
+        <ActivityIndicator size="large" color="#0058bc" />
+      </View>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <AuthProvider>
+      <FinanceProvider>
+        <StatusBar style="dark" />
+        <RootGuard>
+          <Slot />
+        </RootGuard>
+      </FinanceProvider>
+    </AuthProvider>
   );
 }
