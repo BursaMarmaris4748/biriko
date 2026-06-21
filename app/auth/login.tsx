@@ -23,6 +23,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -117,8 +118,25 @@ export default function LoginScreen() {
         {renderInput('email')}
         {renderInput('password')}
 
-        <TouchableOpacity className="self-end -mt-2 mb-6">
+        <TouchableOpacity className="self-end -mt-2">
           <Text className="text-[#0058bc] text-xs font-semibold">Şifremi Unuttum</Text>
+        </TouchableOpacity>
+
+        {/* Beni Hatırla */}
+        <TouchableOpacity
+          onPress={() => setRememberMe(!rememberMe)}
+          className="flex-row items-center mb-6 mt-3"
+        >
+          <View
+            className="w-5 h-5 rounded-md items-center justify-center border"
+            style={{
+              backgroundColor: rememberMe ? '#0058bc' : '#ffffff',
+              borderColor: rememberMe ? '#0058bc' : '#c1c6d7',
+            }}
+          >
+            {rememberMe && <MaterialCommunityIcons name="check" size={14} color="#ffffff" />}
+          </View>
+          <Text className="text-[#414754] text-sm ml-2">Beni Hatırla</Text>
         </TouchableOpacity>
 
         <TouchableOpacity

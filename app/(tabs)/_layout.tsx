@@ -37,7 +37,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Anasayfa',
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons name="home" size={22} color={color} />
           ),
@@ -80,7 +80,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="budget"
         options={{
-          title: 'Budget',
+          title: 'Bütçe',
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons name="wallet" size={22} color={color} />
           ),
@@ -89,7 +89,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'Ayarlar',
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons name="account" size={22} color={color} />
           ),
