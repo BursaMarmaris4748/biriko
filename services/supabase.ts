@@ -22,39 +22,49 @@ export const googleRedirectUri = makeRedirectUri({
   path: 'auth/callback',
 });
 
-export async function signInWithGoogle() {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: googleRedirectUri,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
-    },
+function parseHashParams(url: string) {
+  const hash = url.split('#')[1] || '';
+  const params: Record<string, string> = {};
+  hash.split('&').forEach((part) => {
+    const [k, v] = part.split('=');
+    if (k && v) params[decodeURIComponent(k)] = decodeURIComponent(v);
   });
+  return params;
+}
 
-  if (error) return { error: error.message };
-  if (!data.url) return { error: 'OAuth URL alınamadı' };
+export async function signInWithGoogle() {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: googleRedirectUri,
+        queryParams: { access_type: 'offline', prompt: 'consent' },
+      },
+    });
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url, googleRedirectUri);
+    if (error) return { error: error.message };
+    if (!data?.url) return { error: 'OAuth URL alınamadı' };
 
-  if (result.type !== 'success') {
-    return { error: 'Giriş iptal edildi' };
-  }
+    const result = await WebBrowser.openAuthSessionAsync(data.url, googleRedirectUri);
 
-  const url = new URL(result.url);
-  const fragments = new URLSearchParams(url.hash.replace('#', '?'));
-  const accessToken = fragments.get('access_token');
-  const refreshToken = fragments.get('refresh_token');
+    if (result.type !== 'success') {
+      return { error: 'Giriş iptal edildi' };
+    }
 
-  if (accessToken) {
+    const params = parseHashParams(result.url);
+    const accessToken = params.access_token;
+    const refreshToken = params.refresh_token;
+
+    if (!accessToken) return { error: 'Token alınamadı' };
+
     const { error: sessionError } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken || '',
     });
-    if (sessionError) return { error: sessionError.message };
-  }
 
-  return {};
+    if (sessionError) return { error: sessionError.message };
+    return {};
+  } catch (e: any) {
+    return { error: e?.message || 'Google girişi başarısız' };
+  }
 }
