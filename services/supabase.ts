@@ -1,12 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { makeRedirectUri } from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
 
 const SUPABASE_URL = 'https://zvcveujspwpfthyqqsaz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Rbklw1jab3mikWf6ZDL3qg_i1xbWd69';
-
-WebBrowser.maybeCompleteAuthSession();
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -15,11 +11,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession: true,
     detectSessionInUrl: false,
   },
-});
-
-export const googleRedirectUri = makeRedirectUri({
-  scheme: 'biriko',
-  path: 'auth/callback',
 });
 
 function parseHashParams(url: string) {
@@ -33,6 +24,16 @@ function parseHashParams(url: string) {
 }
 
 export async function signInWithGoogle() {
+  const { makeRedirectUri } = await import('expo-auth-session');
+  const WebBrowser = await import('expo-web-browser');
+
+  WebBrowser.maybeCompleteAuthSession();
+
+  const googleRedirectUri = makeRedirectUri({
+    scheme: 'biriko',
+    path: 'auth/callback',
+  });
+
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
