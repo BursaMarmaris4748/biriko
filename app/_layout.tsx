@@ -5,6 +5,9 @@ import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { AuthProvider, useAuth } from "@/services/auth-context";
 import { FinanceProvider } from "@/services/finance-context";
+import { setupNotificationHandler } from "@/services/notifications";
+
+setupNotificationHandler();
 
 function RootGuard({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
