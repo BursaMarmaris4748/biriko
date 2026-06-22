@@ -26,7 +26,7 @@ interface IslemEkleModalProps {
     amount: number;
     category: string;
     note: string;
-  }) => void;
+  }) => Promise<void>;
 }
 
 const KATEGORILER = [
@@ -83,11 +83,11 @@ export const IslemEkleModal: React.FC<IslemEkleModalProps> = ({
     outputRange: [SHEET_HEIGHT, 0],
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const temizTutar = amount.replace(',', '.');
     const sayi = parseFloat(temizTutar);
     if (isNaN(sayi) || sayi <= 0) return;
-    onSave({ type, amount: sayi, category, note });
+    await onSave({ type, amount: sayi, category, note });
     onClose();
   };
 

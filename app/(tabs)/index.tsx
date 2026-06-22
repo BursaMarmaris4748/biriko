@@ -6,7 +6,7 @@ import { getScannedData } from '@/services/scan-store';
 import { useFinance } from '@/services/finance-context';
 
 export default function HomeScreen() {
-  const { addTransaction } = useFinance();
+  const { addTransaction, refresh } = useFinance();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'gelir' | 'gider'>('gelir');
   const [modalAmount, setModalAmount] = useState<string | undefined>();
@@ -15,6 +15,7 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      refresh();
       const scanned = getScannedData();
       if (scanned) {
         setModalType('gider');
@@ -23,7 +24,7 @@ export default function HomeScreen() {
         setModalNote(scanned.note);
         setModalVisible(true);
       }
-    }, [])
+    }, [refresh])
   );
 
   const handleGelirEkle = () => {
