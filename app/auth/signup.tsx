@@ -17,12 +17,13 @@ import { useAuth } from '@/services/auth-context';
 
 export default function SignupScreen() {
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<'name' | 'email' | 'password' | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -151,6 +152,39 @@ export default function SignupScreen() {
             <ActivityIndicator color="#ffffff" />
           ) : (
             <Text className="text-white font-bold text-base">Kayıt Ol</Text>
+          )}
+        </TouchableOpacity>
+
+        <View className="flex-row items-center mb-6 mt-4">
+          <View className="flex-1 h-[1px]" style={{ backgroundColor: '#e8ecf4' }} />
+          <Text className="mx-4 text-xs text-[#9ca3af] font-medium">veya</Text>
+          <View className="flex-1 h-[1px]" style={{ backgroundColor: '#e8ecf4' }} />
+        </View>
+
+        <TouchableOpacity
+          onPress={async () => {
+            setGoogleLoading(true);
+            const result = await signInWithGoogle();
+            setGoogleLoading(false);
+            if (result.error) Alert.alert('Google Kayıt Başarısız', result.error);
+          }}
+          disabled={googleLoading}
+          className="flex-row items-center justify-center"
+          style={{
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#e8ecf4',
+            height: 50,
+            backgroundColor: '#fafbfc',
+          }}
+        >
+          {googleLoading ? (
+            <ActivityIndicator size="small" color="#1a1a2e" />
+          ) : (
+            <>
+              <MaterialCommunityIcons name="google" size={18} color="#1a1a2e" style={{ marginRight: 8 }} />
+              <Text className="font-semibold text-sm text-[#1a1a2e]">Google ile kayıt ol</Text>
+            </>
           )}
         </TouchableOpacity>
       </Animated.View>

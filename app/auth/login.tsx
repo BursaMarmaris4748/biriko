@@ -17,11 +17,12 @@ import { useAuth } from '@/services/auth-context';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -44,6 +45,13 @@ export default function LoginScreen() {
     const result = await signIn(email.trim(), password);
     setLoading(false);
     if (result.error) Alert.alert('Giriş Başarısız', result.error);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    const result = await signInWithGoogle();
+    setGoogleLoading(false);
+    if (result.error) Alert.alert('Google Giriş Başarısız', result.error);
   };
 
   const renderInput = (field: 'email' | 'password') => {
@@ -167,26 +175,27 @@ export default function LoginScreen() {
           <View className="flex-1 h-[1px]" style={{ backgroundColor: '#e8ecf4' }} />
         </View>
 
-        {[
-          { icon: 'google', label: 'Google ile devam et' },
-          { icon: 'apple', label: 'Apple ile devam et' },
-          { icon: 'account-outline', label: 'Misafir olarak devam et' },
-        ].map((item, i) => (
-          <TouchableOpacity
-            key={i}
-            className="flex-row items-center justify-center mb-3"
-            style={{
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: '#e8ecf4',
-              height: 50,
-              backgroundColor: '#fafbfc',
-            }}
-          >
-            <MaterialCommunityIcons name={item.icon as any} size={18} color="#1a1a2e" style={{ marginRight: 8 }} />
-            <Text className="font-semibold text-sm text-[#1a1a2e]">{item.label}</Text>
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+          className="flex-row items-center justify-center"
+          style={{
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#e8ecf4',
+            height: 50,
+            backgroundColor: '#fafbfc',
+          }}
+        >
+          {googleLoading ? (
+            <ActivityIndicator size="small" color="#1a1a2e" />
+          ) : (
+            <>
+              <MaterialCommunityIcons name="google" size={18} color="#1a1a2e" style={{ marginRight: 8 }} />
+              <Text className="font-semibold text-sm text-[#1a1a2e]">Google ile devam et</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </Animated.View>
 
       <Animated.View className="flex-row justify-center" style={{ opacity: fadeAnim }}>
