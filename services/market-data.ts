@@ -27,23 +27,31 @@ export async function fetchMarketPrices(): Promise<MarketPrice[]> {
   if (now - lastFetch < 15000 && cachedPrices.length) return cachedPrices;
 
   try {
-    const [dovizRes, coinRes] = await Promise.all([
-      fetch('https://api.genelpara.com/embed/doviz.json').then(r => r.ok ? r.json() : Promise.reject('doviz fail')),
-      fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple,cardano&vs_currencies=try').then(r => r.ok ? r.json() : Promise.reject('coingecko fail')),
-    ]);
+    const exchangeRatesRes = fetch('https://api.exchangerate-api.com/v4/latest/TRY').then(r => r.ok ? r.json() : Promise.reject());
+    const goldRes = fetch('https://api.gold-api.com/price/XAU').then(r => r.ok ? r.json() : Promise.reject());
+    const coinRes = fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple,cardano&vs_currencies=try').then(r => r.ok ? r.json() : Promise.reject());
+
+    const [exchangeData, goldData, coinData] = await Promise.all([exchangeRatesRes, goldRes, coinRes]);
+
+    const usdSell = 1 / exchangeData.rates.USD;
+    const eurSell = 1 / exchangeData.rates.EUR;
+    const goldOzUsd = goldData.price;
+    const gramAltinSell = (goldOzUsd * usdSell) / 31.1;
 
     const prices: MarketPrice[] = [
-      { symbol: 'USD', name: 'Dolar', buy: +dovizRes.USD.alis, sell: +dovizRes.USD.satis, icon: 'currency-usd' },
-      { symbol: 'EUR', name: 'Euro', buy: +dovizRes.EUR.alis, sell: +dovizRes.EUR.satis, icon: 'currency-eur' },
-      { symbol: 'GA', name: 'Gram Altın', buy: +dovizRes.GA.alis, sell: +dovizRes.GA.satis, icon: 'gold' },
-      { symbol: 'BTC', name: 'Bitcoin', buy: coinRes.bitcoin.try * 0.995, sell: coinRes.bitcoin.try * 1.005, icon: 'bitcoin' },
-      { symbol: 'ETH', name: 'Ethereum', buy: coinRes.ethereum.try * 0.995, sell: coinRes.ethereum.try * 1.005, icon: 'ethereum' },
+      { symbol: 'USD', name: 'Dolar', buy: usdSell * 0.995, sell: usdSell, icon: 'currency-usd' },
+      { symbol: 'EUR', name: 'Euro', buy: eurSell * 0.995, sell: eurSell, icon: 'currency-eur' },
+      { symbol: 'GA', name: 'Gram Altın', buy: gramAltinSell * 0.995, sell: gramAltinSell, icon: 'gold' },
+      { symbol: 'BTC', name: 'Bitcoin', buy: coinData.bitcoin.try * 0.995, sell: coinData.bitcoin.try * 1.005, icon: 'bitcoin' },
+      { symbol: 'ETH', name: 'Ethereum', buy: coinData.ethereum.try * 0.995, sell: coinData.ethereum.try * 1.005, icon: 'ethereum' },
     ];
 
     cachedPrices = prices;
     lastFetch = now;
     return prices;
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 export async function loadInvestments(): Promise<Investment[]> {
