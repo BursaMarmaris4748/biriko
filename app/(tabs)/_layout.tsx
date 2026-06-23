@@ -90,9 +90,9 @@ export default function TabLayout() {
         <Tabs.Screen
           name="budget"
           options={{
-            title: 'Bütçe',
+            title: 'Yatırım',
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="wallet" size={22} color={color} />
+              <MaterialCommunityIcons name="chart-line" size={22} color={color} />
             ),
           }}
         />
