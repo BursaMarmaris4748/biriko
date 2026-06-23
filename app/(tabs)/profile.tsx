@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Updates from 'expo-updates';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/services/auth-context';
 import {
@@ -78,6 +77,7 @@ export default function SettingsScreen() {
   const checkForUpdates = async () => {
     setUpdateChecking(true);
     try {
+      const Updates = await import('expo-updates');
       if (!Updates.isEnabled) { Alert.alert('Bilgi', 'Güncelleme kontrolü kullanılamıyor.'); return; }
       const result = await Updates.checkForUpdateAsync();
       if (result.isAvailable) {
