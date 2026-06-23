@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,6 +21,22 @@ export default function InvestmentScreen() {
   const [newType, setNewType] = useState<string>('gold');
   const [newAmount, setNewAmount] = useState('');
   const [newCost, setNewCost] = useState('');
+  const costManuallyEdited = useRef(false);
+
+  const currentUnitPrice = (() => {
+    const match = newType === 'gold' ? 'GA' : newType.toUpperCase();
+    const p = prices.find(x => x.symbol === match);
+    return p?.sell || 0;
+  })();
+
+  const updateCostFromAmount = (amt: string, type: string) => {
+    if (costManuallyEdited.current) return;
+    const parsed = parseFloat(amt);
+    if (!parsed) { setNewCost(''); return; }
+    const match = type === 'gold' ? 'GA' : type.toUpperCase();
+    const p = prices.find(x => x.symbol === match);
+    if (p) setNewCost((parsed * p.sell).toFixed(2));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,6 +76,7 @@ export default function InvestmentScreen() {
     setShowAddModal(false);
     setNewAmount('');
     setNewCost('');
+    costManuallyEdited.current = false;
   };
 
   const handleDelete = (id: string) => {
@@ -174,7 +191,7 @@ export default function InvestmentScreen() {
             <Text className="text-[#727786] text-xs font-semibold mb-2">Tür</Text>
             <View className="flex-row flex-wrap gap-2 mb-4">
               {investmentTypes.map(t => (
-                <TouchableOpacity key={t.type} onPress={() => setNewType(t.type)}
+                <TouchableOpacity key={t.type} onPress={() => { setNewType(t.type); costManuallyEdited.current = false; updateCostFromAmount(newAmount, t.type); }}
                   className={`px-4 py-2 rounded-xl border ${newType === t.type ? 'bg-[#0058bc] border-[#0058bc]' : 'bg-white border-[#e8ecf4]'}`}
                 >
                   <Text className={`text-sm font-medium ${newType === t.type ? 'text-white' : 'text-[#151c27]'}`}>{t.label}</Text>
@@ -182,21 +199,27 @@ export default function InvestmentScreen() {
               ))}
             </View>
 
+            {currentUnitPrice > 0 && (
+              <View className="bg-[#f0f7ff] rounded-xl px-4 py-2 mb-3 flex-row items-center justify-between">
+                <Text className="text-[#0058bc] text-xs font-medium">Güncel Birim Fiyat</Text>
+                <Text className="text-[#0058bc] font-bold">{currentUnitPrice.toFixed(2)} ₺</Text>
+              </View>
+            )}
             <TextInput
               className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-3 border border-[#e8ecf4]"
-              placeholder="Miktar (ör: 5 gram, 100 adet)"
+              placeholder="Miktar (ör: 10 gram, 100 adet)"
               placeholderTextColor="#b0b7c3"
               keyboardType="decimal-pad"
               value={newAmount}
-              onChangeText={setNewAmount}
+              onChangeText={(t) => { setNewAmount(t); updateCostFromAmount(t, newType); }}
             />
             <TextInput
               className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-5 border border-[#e8ecf4]"
-              placeholder="Toplam Maliyet (TL)"
+              placeholder={`Toplam Maliyet (TL) — otomatik hesaplanır`}
               placeholderTextColor="#b0b7c3"
               keyboardType="decimal-pad"
               value={newCost}
-              onChangeText={setNewCost}
+              onChangeText={(t) => { costManuallyEdited.current = true; setNewCost(t); }}
             />
 
             <TouchableOpacity onPress={handleAdd} className="bg-[#0058bc] rounded-2xl py-3.5 items-center">
