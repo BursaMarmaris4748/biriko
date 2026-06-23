@@ -20,21 +20,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeout = setTimeout(() => { if (!cancelled) setLoading(false); }, 5000);
+
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
+        if (cancelled) return;
         setSession(session);
         setUser(session?.user ?? null);
       })
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+      .catch(() => { if (!cancelled) setUser(null); })
+      .finally(() => { if (!cancelled) { clearTimeout(timeout); setLoading(false); } });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => listener?.subscription.unsubscribe();
+    return () => { cancelled = true; listener?.subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
