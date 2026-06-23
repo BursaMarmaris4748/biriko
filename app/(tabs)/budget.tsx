@@ -103,16 +103,25 @@ export default function InvestmentScreen() {
 
         {/* Canlı Fiyatlar */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-5 pb-4" contentContainerStyle={{ gap: 10 }}>
-          {prices.map(p => (
-            <View key={p.symbol} className="bg-white rounded-2xl px-4 py-3 border border-[#e8ecf4] min-w-[130px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}>
-              <View className="flex-row items-center gap-2 mb-1">
-                <MaterialCommunityIcons name={p.icon as any} size={16} color="#0058bc" />
-                <Text className="text-[#727786] text-xs font-medium">{p.symbol}</Text>
+          {prices.map(p => {
+            const up = p.change >= 0;
+            return (
+              <View key={p.symbol} className="bg-white rounded-2xl px-4 py-3 border border-[#e8ecf4] min-w-[135px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}>
+                <View className="flex-row items-center gap-2 mb-1">
+                  <MaterialCommunityIcons name={p.icon as any} size={16} color="#0058bc" />
+                  <Text className="text-[#727786] text-xs font-medium">{p.symbol}</Text>
+                </View>
+                <Text className="text-[#151c27] font-bold text-base">{invFormatted(p.sell)} ₺</Text>
+                <View className="flex-row items-center gap-1 mt-0.5">
+                  <MaterialCommunityIcons name={up ? 'trending-up' : 'trending-down'} size={12} color={up ? '#10b981' : '#ba1a1a'} />
+                  <Text className={`text-xs font-semibold ${up ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>
+                    {up ? '+' : ''}{p.change.toFixed(2)}%
+                  </Text>
+                  <Text className="text-[#9ca3af] text-[10px] ml-1">Alış {invFormatted(p.buy)} ₺</Text>
+                </View>
               </View>
-              <Text className="text-[#151c27] font-bold text-base">{invFormatted(p.sell)} ₺</Text>
-              <Text className="text-[#9ca3af] text-[10px]">Alış {invFormatted(p.buy)} ₺</Text>
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
 
         {/* Özet Kartı */}

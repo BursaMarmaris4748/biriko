@@ -5,6 +5,7 @@ export interface MarketPrice {
   name: string;
   buy: number;
   sell: number;
+  change: number;
   icon: string;
 }
 
@@ -20,6 +21,7 @@ export interface Investment {
 const STORAGE_KEY = '@biriko/investments';
 
 let cachedPrices: MarketPrice[] = [];
+let lastPrices: MarketPrice[] = [];
 let lastFetch = 0;
 
 export async function fetchMarketPrices(): Promise<MarketPrice[]> {
@@ -38,17 +40,25 @@ export async function fetchMarketPrices(): Promise<MarketPrice[]> {
     const goldOzUsd = goldData.price;
     const gramAltinSell = (goldOzUsd * usdSell) / 31.1;
 
-    const prices: MarketPrice[] = [
-      { symbol: 'USD', name: 'Dolar', buy: usdSell * 0.995, sell: usdSell, icon: 'currency-usd' },
-      { symbol: 'EUR', name: 'Euro', buy: eurSell * 0.995, sell: eurSell, icon: 'currency-eur' },
-      { symbol: 'GA', name: 'Gram Altın', buy: gramAltinSell * 0.995, sell: gramAltinSell, icon: 'gold' },
-      { symbol: 'BTC', name: 'Bitcoin', buy: coinData.bitcoin.try * 0.995, sell: coinData.bitcoin.try * 1.005, icon: 'bitcoin' },
-      { symbol: 'ETH', name: 'Ethereum', buy: coinData.ethereum.try * 0.995, sell: coinData.ethereum.try * 1.005, icon: 'ethereum' },
+    const newPrices = [
+      { symbol: 'USD', name: 'Dolar', buy: usdSell * 0.995, sell: usdSell, change: 0, icon: 'currency-usd' },
+      { symbol: 'EUR', name: 'Euro', buy: eurSell * 0.995, sell: eurSell, change: 0, icon: 'currency-eur' },
+      { symbol: 'GA', name: 'Gram Altın', buy: gramAltinSell * 0.995, sell: gramAltinSell, change: 0, icon: 'gold' },
+      { symbol: 'BTC', name: 'Bitcoin', buy: coinData.bitcoin.try * 0.995, sell: coinData.bitcoin.try * 1.005, change: 0, icon: 'bitcoin' },
+      { symbol: 'ETH', name: 'Ethereum', buy: coinData.ethereum.try * 0.995, sell: coinData.ethereum.try * 1.005, change: 0, icon: 'ethereum' },
     ];
 
-    cachedPrices = prices;
+    if (lastPrices.length) {
+      newPrices.forEach(p => {
+        const prev = lastPrices.find(x => x.symbol === p.symbol);
+        if (prev && prev.sell > 0) p.change = ((p.sell - prev.sell) / prev.sell) * 100;
+      });
+    }
+
+    lastPrices = cachedPrices;
+    cachedPrices = newPrices;
     lastFetch = now;
-    return prices;
+    return newPrices;
   } catch {
     return [];
   }
