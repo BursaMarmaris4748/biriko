@@ -59,8 +59,8 @@ export default function InvestmentScreen() {
 
   const handleAdd = async () => {
     const amt = parseFloat(newAmount);
-    const cst = parseFloat(newCost);
-    if (!amt || !cst) { Alert.alert('Hata', 'Miktar ve maliyet gerekli.'); return; }
+    if (!amt) { Alert.alert('Hata', 'Miktar gerekli.'); return; }
+    const cst = parseFloat(newCost) || (currentUnitPrice * amt);
     const t = investmentTypes.find(x => x.type === newType);
     const newInv: Investment = {
       id: Date.now().toString(),
