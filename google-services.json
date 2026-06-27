@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "573304848216",
+    "project_id": "biriko-88f2b",
+    "storage_bucket": "biriko-88f2b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573304848216:android:3950fcf581bf28e5a4ef2d",
+        "android_client_info": {
+          "package_name": "com.biriko.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "573304848216-t8hf09cgff8kmhl0atl803sogekrc1gr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHlzEPEs3R8eYUY9YLV5DnFS6DuDsJA-s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "573304848216-t8hf09cgff8kmhl0atl803sogekrc1gr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573304848216:android:9a276b6f34c52766a4ef2d",
+        "android_client_info": {
+          "package_name": "com.omerarslan.biriko"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "573304848216-t8hf09cgff8kmhl0atl803sogekrc1gr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHlzEPEs3R8eYUY9YLV5DnFS6DuDsJA-s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "573304848216-t8hf09cgff8kmhl0atl803sogekrc1gr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
