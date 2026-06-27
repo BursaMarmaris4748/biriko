@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase, signInWithGoogle as googleSignIn, parseUrlParams } from './supabase';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
-import * as Linking from 'expo-linking';
 
 interface AuthContextType {
   user: User | null;
@@ -9,7 +8,6 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error?: string }>;
-  signInWithGoogle: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -21,78 +19,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-    const timeout = setTimeout(() => { if (!cancelled) setLoading(false); }, 5000);
-
-    const initSession = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (session) { setSession(session); setUser(session.user); clearTimeout(timeout); setLoading(false); return; }
-
-      const initialUrl = await Linking.getInitialURL();
-      if (!initialUrl || !initialUrl.includes('auth/callback')) {
-        clearTimeout(timeout); setLoading(false); return;
-      }
-      const params = parseUrlParams(initialUrl);
-      const accessToken = params.access_token;
-      if (!accessToken) { clearTimeout(timeout); setLoading(false); return; }
-      const { data: { session: newSession } } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: params.refresh_token || '',
-      });
-      if (!cancelled) { setSession(newSession); setUser(newSession?.user ?? null); clearTimeout(timeout); setLoading(false); }
-    };
-
-    initSession().catch(() => { if (!cancelled) { clearTimeout(timeout); setLoading(false); } });
-
-    const { data: onAuthListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (cancelled) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+    };
+    init();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
     });
 
-    return () => { cancelled = true; onAuthListener?.subscription.unsubscribe(); clearTimeout(timeout); };
+    return () => listener?.subscription.unsubscribe();
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { error: error.message };
-      return {};
-    } catch (e: any) {
-      return { error: e?.message || 'Giriş yapılamadı' };
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return error ? { error: error.message } : {};
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name } },
-      });
-      if (error) return { error: error.message };
-      return {};
-    } catch (e: any) {
-      return { error: e?.message || 'Kayıt yapılamadı' };
-    }
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    return error ? { error: error.message } : {};
   }, []);
 
   const signOut = useCallback(async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch {}
+    await supabase.auth.signOut();
     setUser(null);
     setSession(null);
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
-    return await googleSignIn();
-  }, []);
-
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

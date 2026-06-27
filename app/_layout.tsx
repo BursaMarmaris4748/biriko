@@ -1,5 +1,5 @@
 import "../global.css";
-import { useSegments, useRouter, Slot } from "expo-router";
+import { useRouter, usePathname, Slot } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
@@ -11,20 +11,20 @@ setupNotificationHandler();
 
 function RootGuard({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
-  const segments = useSegments();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (loading) return;
 
-    const inAuthGroup = segments[0] === 'auth';
+    const inAuth = pathname === '/login' || pathname === '/register';
 
-    if (!session && !inAuthGroup) {
-      router.replace('/auth/login');
-    } else if (session && inAuthGroup) {
+    if (!session && !inAuth) {
+      router.replace('/login' as any);
+    } else if (session && inAuth) {
       router.replace('/(tabs)');
     }
-  }, [session, loading, segments, router]);
+  }, [session, loading, pathname, router]);
 
   if (loading) {
     return (
