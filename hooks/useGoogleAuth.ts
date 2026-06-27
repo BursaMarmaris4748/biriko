@@ -1,42 +1,63 @@
-import { useEffect, useState } from 'react';
-import * as Google from 'expo-auth-session/providers/google';
+import { useState } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'expo-router';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const webClientId = '573304848216-t8hf09cgff8kmhl0atl803sogekrc1gr.apps.googleusercontent.com';
+function parseUrlParams(url: string): Record<string, string> {
+  const hash = url.split('#')[1] || url.split('?')[1] || '';
+  const params: Record<string, string> = {};
+  hash.split('&').forEach((part) => {
+    const [k, v] = part.split('=');
+    if (k && v) params[decodeURIComponent(k)] = decodeURIComponent(v);
+  });
+  return params;
+}
 
 export function useGoogleAuth() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: webClientId,
-  });
-
-  useEffect(() => {
-    if (response?.type !== 'success') return;
-    const { id_token } = response.params;
-    if (!id_token) return;
-
-    setLoading(true);
-    supabase.auth
-      .signInWithIdToken({ provider: 'google', token: id_token })
-      .then(({ error }) => {
-        if (error) setError(error.message);
-        else router.replace('/(tabs)');
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [response]);
-
-  const signIn = () => {
+  const signIn = async () => {
     setError(null);
-    promptAsync();
+    setLoading(true);
+    try {
+      const redirectTo = 'biriko://auth/callback';
+
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
+      });
+
+      if (oauthError) { setError(oauthError.message); setLoading(false); return; }
+      if (!data?.url) { setError('OAuth URL alınamadı'); setLoading(false); return; }
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url);
+
+      if (result.type !== 'success') {
+        setError('Giriş iptal edildi');
+        setLoading(false);
+        return;
+      }
+
+      const params = parseUrlParams(result.url);
+      const accessToken = params.access_token;
+      if (!accessToken) { setError('Token alınamadı'); setLoading(false); return; }
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: params.refresh_token || '',
+      });
+
+      if (sessionError) setError(sessionError.message);
+    } catch (e: any) {
+      setError(e?.message || 'Google girişi başarısız');
+    }
+    setLoading(false);
   };
 
-  return { signIn, loading, error, disabled: !request };
+  return { signIn, loading, error, disabled: false };
 }
