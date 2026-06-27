@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Linking from 'expo-linking';
 
 const SUPABASE_URL = 'https://zvcveujspwpfthyqqsaz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Rbklw1jab3mikWf6ZDL3qg_i1xbWd69';
@@ -18,9 +17,22 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
+export function parseUrlParams(url: string): Record<string, string> {
+  const hash = url.split('#')[1] || url.split('?')[1] || '';
+  const params: Record<string, string> = {};
+  hash.split('&').forEach((part) => {
+    const [k, v] = part.split('=');
+    if (k && v) params[decodeURIComponent(k)] = decodeURIComponent(v);
+  });
+  return params;
+}
+
 export async function signInWithGoogle() {
+  const WebBrowser = await import('expo-web-browser');
+  WebBrowser.maybeCompleteAuthSession();
+
   try {
-    const redirectTo = Linking.createURL('auth/callback');
+    const redirectTo = 'https://auth.expo.io/@omerarslan/biriko';
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -33,31 +45,24 @@ export async function signInWithGoogle() {
     if (error) return { error: error.message };
     if (!data?.url) return { error: 'OAuth URL alınamadı' };
 
-    return new Promise<{ error?: string }>((resolve) => {
-      const sub = Linking.addEventListener('url', async (event) => {
-        sub.remove();
-        const params = parseUrlParams(event.url);
-        const accessToken = params.access_token;
-        if (!accessToken) { resolve({ error: 'Token alınamadı' }); return; }
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: params.refresh_token || '',
-        });
-        resolve(sessionError ? { error: sessionError.message } : {});
-      });
-      Linking.openURL(data.url);
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+    if (result.type !== 'success') {
+      return { error: 'Giriş iptal edildi' };
+    }
+
+    const params = parseUrlParams(result.url);
+    const accessToken = params.access_token;
+    if (!accessToken) return { error: 'Token alınamadı' };
+
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: params.refresh_token || '',
     });
+
+    if (sessionError) return { error: sessionError.message };
+    return {};
   } catch (e: any) {
     return { error: e?.message || 'Google girişi başarısız' };
   }
-}
-
-export function parseUrlParams(url: string): Record<string, string> {
-  const hash = url.split('#')[1] || url.split('?')[1] || '';
-  const params: Record<string, string> = {};
-  hash.split('&').forEach((part) => {
-    const [k, v] = part.split('=');
-    if (k && v) params[decodeURIComponent(k)] = decodeURIComponent(v);
-  });
-  return params;
 }
