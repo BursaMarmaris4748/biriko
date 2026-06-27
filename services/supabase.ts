@@ -17,32 +17,27 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
-function parseHashParams(url: string) {
-  const hash = url.split('#')[1] || '';
-  const params: Record<string, string> = {};
-  hash.split('&').forEach((part) => {
+function extractParam(url: string, key: string): string | null {
+  const params = (url.split('#')[1] || url.split('?')[1] || '').split('&');
+  for (const part of params) {
     const [k, v] = part.split('=');
-    if (k && v) params[decodeURIComponent(k)] = decodeURIComponent(v);
-  });
-  return params;
+    if (k === key && v) return decodeURIComponent(v);
+  }
+  return null;
 }
 
 export async function signInWithGoogle() {
-  const { makeRedirectUri } = await import('expo-auth-session');
   const WebBrowser = await import('expo-web-browser');
-
+  const { createURL } = await import('expo-linking');
   WebBrowser.maybeCompleteAuthSession();
 
-  const googleRedirectUri = makeRedirectUri({
-    scheme: 'biriko',
-    path: 'auth/callback',
-  });
-
   try {
+    const redirectTo = createURL('auth/callback');
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: googleRedirectUri,
+        redirectTo,
         queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     });
@@ -50,15 +45,14 @@ export async function signInWithGoogle() {
     if (error) return { error: error.message };
     if (!data?.url) return { error: 'OAuth URL alınamadı' };
 
-    const result = await WebBrowser.openAuthSessionAsync(data.url, googleRedirectUri);
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
     if (result.type !== 'success') {
       return { error: 'Giriş iptal edildi' };
     }
 
-    const params = parseHashParams(result.url);
-    const accessToken = params.access_token;
-    const refreshToken = params.refresh_token;
+    const accessToken = extractParam(result.url, 'access_token');
+    const refreshToken = extractParam(result.url, 'refresh_token');
 
     if (!accessToken) return { error: 'Token alınamadı' };
 
