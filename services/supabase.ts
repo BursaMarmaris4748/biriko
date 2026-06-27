@@ -52,7 +52,7 @@ export async function signInWithGoogle() {
   }
 }
 
-function parseUrlParams(url: string): Record<string, string> {
+export function parseUrlParams(url: string): Record<string, string> {
   const hash = url.split('#')[1] || url.split('?')[1] || '';
   const params: Record<string, string> = {};
   hash.split('&').forEach((part) => {

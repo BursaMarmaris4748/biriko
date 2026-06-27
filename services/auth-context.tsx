@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase, signInWithGoogle as googleSignIn } from './supabase';
+import { supabase, signInWithGoogle as googleSignIn, parseUrlParams } from './supabase';
 import { Session, User } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 
 interface AuthContextType {
   user: User | null;
@@ -23,23 +24,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     const timeout = setTimeout(() => { if (!cancelled) setLoading(false); }, 5000);
 
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (cancelled) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-      })
-      .catch(() => { if (!cancelled) setUser(null); })
-      .finally(() => { if (!cancelled) { clearTimeout(timeout); setLoading(false); } });
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (session) { setSession(session); setUser(session.user); clearTimeout(timeout); setLoading(false); return; }
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const initialUrl = await Linking.getInitialURL();
+      if (!initialUrl || !initialUrl.includes('auth/callback')) {
+        clearTimeout(timeout); setLoading(false); return;
+      }
+      const params = parseUrlParams(initialUrl);
+      const accessToken = params.access_token;
+      if (!accessToken) { clearTimeout(timeout); setLoading(false); return; }
+      const { data: { session: newSession } } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: params.refresh_token || '',
+      });
+      if (!cancelled) { setSession(newSession); setUser(newSession?.user ?? null); clearTimeout(timeout); setLoading(false); }
+    };
+
+    initSession().catch(() => { if (!cancelled) { clearTimeout(timeout); setLoading(false); } });
+
+    const { data: onAuthListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => { cancelled = true; listener?.subscription.unsubscribe(); clearTimeout(timeout); };
+    return () => { cancelled = true; onAuthListener?.subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
