@@ -13,6 +13,14 @@ const investmentTypes = [
   { type: 'other' as const, label: 'Diğer', icon: 'wallet' },
 ];
 
+const typeIconMap: Record<string, string> = {
+  gold: 'gold',
+  usd: 'currency-usd',
+  eur: 'currency-eur',
+  btc: 'bitcoin',
+  eth: 'ethereum',
+};
+
 export default function InvestmentScreen() {
   const [prices, setPrices] = useState<MarketPrice[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
@@ -124,71 +132,76 @@ export default function InvestmentScreen() {
           })}
         </ScrollView>
 
-        {/* Özet Kartı */}
-        <View className="mx-5 bg-white rounded-3xl p-5 mb-5 border border-[#e8ecf4]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 }}>
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-[#151c27] font-bold text-lg">Yatırımlarım</Text>
-            <TouchableOpacity onPress={() => setShowAddModal(true)} className="bg-[#0058bc] rounded-xl px-4 py-2 flex-row items-center gap-1">
-              <MaterialCommunityIcons name="plus" size={16} color="#fff" />
-              <Text className="text-white font-semibold text-xs">Ekle</Text>
+        {/* Mavi Yatırımlarım Kartı */}
+        <View className="mx-5 rounded-2xl p-5 mb-4" style={{ backgroundColor: '#0055FF' }}>
+          <View className="flex-row items-center justify-between mb-6">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-white text-lg font-semibold">Yatırımlarım</Text>
+              <MaterialCommunityIcons name="eye-outline" size={20} color="rgba(255,255,255,0.7)" />
+            </View>
+            <TouchableOpacity onPress={() => setShowAddModal(true)} className="bg-white rounded-xl px-4 py-2.5 flex-row items-center gap-1">
+              <MaterialCommunityIcons name="plus" size={16} color="#0055FF" />
+              <Text className="text-[#0055FF] font-bold text-xs">Ekle</Text>
             </TouchableOpacity>
           </View>
-          {loading ? (
-            <ActivityIndicator size="small" color="#0058bc" />
-          ) : investments.length === 0 ? (
-            <View className="items-center py-6">
-              <MaterialCommunityIcons name="chart-timeline-variant" size={40} color="#c1c6d7" />
-              <Text className="text-[#9ca3af] text-sm mt-2">Henüz yatırım eklemedin</Text>
-            </View>
-          ) : (
-            <>
-              <View className="flex-row justify-between mb-3">
-                <View>
-                  <Text className="text-[#9ca3af] text-xs">Toplam Maliyet</Text>
-                  <Text className="text-[#151c27] font-bold text-lg">{invFormatted(totalCost)} ₺</Text>
-                </View>
-                <View className="items-end">
-                  <Text className="text-[#9ca3af] text-xs">Güncel Değer</Text>
-                  <Text className="text-[#151c27] font-bold text-lg">{invFormatted(totalValue)} ₺</Text>
-                </View>
-              </View>
-              <View className={`self-start rounded-full px-3 py-1 flex-row items-center gap-1 ${change >= 0 ? 'bg-[#eafff0]' : 'bg-[#ffebe9]'}`}>
-                <MaterialCommunityIcons name={change >= 0 ? 'trending-up' : 'trending-down'} size={14} color={change >= 0 ? '#10b981' : '#ba1a1a'} />
-                <Text className={`font-semibold text-xs ${change >= 0 ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>
-                  {change >= 0 ? '+' : ''}{change.toFixed(2)}%
-                </Text>
-              </View>
 
-              {/* Yatırım Listesi */}
-              <View className="mt-4 border-t border-[#e8ecf4] pt-3">
-                {investments.map(inv => {
-                  const p = getPrice(inv.type);
-                  const currentVal = p ? inv.amount * p.sell : inv.cost;
-                  const profit = currentVal - inv.cost;
-                  return (
-                    <TouchableOpacity key={inv.id} onLongPress={() => handleDelete(inv.id)} className="flex-row items-center py-3 border-b border-[#f2f5f9]">
-                      <View className="w-9 h-9 rounded-full bg-[#f0f7ff] items-center justify-center mr-3">
-                        <MaterialCommunityIcons name={(investmentTypes.find(t => t.type === inv.type)?.icon || 'wallet') as any} size={16} color="#0058bc" />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-[#151c27] font-semibold text-sm">{inv.label}</Text>
-                        <Text className="text-[#9ca3af] text-xs">{inv.amount} {inv.type === 'gold' ? 'gram' : inv.type === 'btc' || inv.type === 'eth' ? 'adet' : 'birim'}</Text>
-                      </View>
-                      <View className="items-end">
-                        <Text className="text-[#151c27] font-semibold text-sm">{invFormatted(currentVal)} ₺</Text>
-                        <Text className={`text-xs font-medium ${profit >= 0 ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>
-                          {profit >= 0 ? '+' : ''}{invFormatted(profit)} ₺
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <View className="flex-row justify-between items-start">
+              <View>
+                <Text className="text-white/70 text-xs">Toplam Maliyet</Text>
+                <Text className="text-white font-bold text-2xl mt-1">{invFormatted(totalCost)} ₺</Text>
+                <View className="bg-green-300/30 rounded-md px-2 py-1 mt-1.5 self-start">
+                  <Text className="text-green-300 text-xs font-bold">{change >= 0 ? '+' : ''}{change.toFixed(2)}%</Text>
+                </View>
               </View>
-            </>
+              <View className="items-end">
+                <Text className="text-white/70 text-xs">Güncel Değer</Text>
+                <Text className="text-white font-bold text-[28px] mt-1">{invFormatted(totalValue)} ₺</Text>
+              </View>
+            </View>
           )}
         </View>
 
-        <Text className="text-center text-[#c1c6d7] text-xs">30 sn'de bir güncellenir</Text>
+        {/* Yatırım Listesi */}
+        {investments.map(inv => {
+          const p = getPrice(inv.type);
+          const currentVal = p ? inv.amount * p.sell : inv.cost;
+          const profit = currentVal - inv.cost;
+          const icon = typeIconMap[inv.type] || 'wallet';
+          const birim = inv.type === 'gold' ? 'gram' : inv.type === 'btc' || inv.type === 'eth' ? 'adet' : 'birim';
+          return (
+            <TouchableOpacity key={inv.id} onLongPress={() => handleDelete(inv.id)} activeOpacity={0.7}
+              className="mx-5 bg-white rounded-2xl px-4 py-4 mb-3 flex-row items-center"
+              style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}
+            >
+              <View className="w-11 h-11 rounded-full bg-[#f0f4ff] items-center justify-center mr-3">
+                <MaterialCommunityIcons name={icon as any} size={22} color="#0055FF" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[#151c27] font-bold text-base">{inv.label}</Text>
+                <Text className="text-[#9ca3af] text-xs">{inv.amount} {birim}</Text>
+              </View>
+              <View className="items-end mr-2">
+                <Text className="text-[#151c27] font-bold text-base">{invFormatted(currentVal)} ₺</Text>
+                <Text className={`text-sm font-bold ${profit >= 0 ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>
+                  {profit >= 0 ? '+' : ''}{invFormatted(profit)} ₺
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9ca3af" />
+            </TouchableOpacity>
+          );
+        })}
+
+        {!loading && investments.length === 0 && (
+          <View className="items-center py-10 mx-5 bg-white rounded-2xl border border-[#e8ecf4]">
+            <MaterialCommunityIcons name="chart-timeline-variant" size={48} color="#c1c6d7" />
+            <Text className="text-[#9ca3af] text-sm mt-3">Henüz yatırım eklemedin</Text>
+          </View>
+        )}
+
+        <Text className="text-center text-[#c1c6d7] text-xs mt-4">30 sn'de bir güncellenir</Text>
       </ScrollView>
 
       {/* Ekle Modal */}
@@ -201,7 +214,7 @@ export default function InvestmentScreen() {
             <View className="flex-row flex-wrap gap-2 mb-4">
               {investmentTypes.map(t => (
                 <TouchableOpacity key={t.type} onPress={() => { setNewType(t.type); costManuallyEdited.current = false; updateCostFromAmount(newAmount, t.type); }}
-                  className={`px-4 py-2 rounded-xl border ${newType === t.type ? 'bg-[#0058bc] border-[#0058bc]' : 'bg-white border-[#e8ecf4]'}`}
+                  className={`px-4 py-2 rounded-xl border ${newType === t.type ? 'bg-[#0055FF] border-[#0055FF]' : 'bg-white border-[#e8ecf4]'}`}
                 >
                   <Text className={`text-sm font-medium ${newType === t.type ? 'text-white' : 'text-[#151c27]'}`}>{t.label}</Text>
                 </TouchableOpacity>
@@ -210,8 +223,8 @@ export default function InvestmentScreen() {
 
             {currentUnitPrice > 0 && (
               <View className="bg-[#f0f7ff] rounded-xl px-4 py-2 mb-3 flex-row items-center justify-between">
-                <Text className="text-[#0058bc] text-xs font-medium">Güncel Birim Fiyat</Text>
-                <Text className="text-[#0058bc] font-bold">{currentUnitPrice.toFixed(2)} ₺</Text>
+                <Text className="text-[#0055FF] text-xs font-medium">Güncel Birim Fiyat</Text>
+                <Text className="text-[#0055FF] font-bold">{currentUnitPrice.toFixed(2)} ₺</Text>
               </View>
             )}
             <TextInput
@@ -224,14 +237,14 @@ export default function InvestmentScreen() {
             />
             <TextInput
               className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-5 border border-[#e8ecf4]"
-              placeholder={`Toplam Maliyet (TL) — otomatik hesaplanır`}
+              placeholder="Toplam Maliyet (TL) — otomatik hesaplanır"
               placeholderTextColor="#b0b7c3"
               keyboardType="decimal-pad"
               value={newCost}
               onChangeText={(t) => { costManuallyEdited.current = true; setNewCost(t); }}
             />
 
-            <TouchableOpacity onPress={handleAdd} className="bg-[#0058bc] rounded-2xl py-3.5 items-center">
+            <TouchableOpacity onPress={handleAdd} className="bg-[#0055FF] rounded-2xl py-3.5 items-center">
               <Text className="text-white font-bold text-base">Ekle</Text>
             </TouchableOpacity>
           </Pressable>
