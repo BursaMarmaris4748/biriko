@@ -17,7 +17,7 @@ function RootGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const inAuth = pathname === '/login' || pathname === '/register';
+    const inAuth = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
 
     if (!session && !inAuth) {
       router.replace('/login' as any);

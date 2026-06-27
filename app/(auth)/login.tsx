@@ -130,7 +130,7 @@ export default function LoginScreen() {
         {renderInput('email')}
         {renderInput('password')}
 
-        <TouchableOpacity className="self-end -mt-2">
+        <TouchableOpacity className="self-end -mt-2" onPress={() => router.push('/forgot-password' as any)}>
           <Text className="text-[#0058bc] text-xs font-semibold">Şifremi Unuttum</Text>
         </TouchableOpacity>
 
