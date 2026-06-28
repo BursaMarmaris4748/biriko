@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MarketPrice, Investment, fetchMarketPrices, loadInvestments, saveInvestments } from '@/services/market-data';
 
 const investmentTypes = [
@@ -21,13 +22,13 @@ const typeIconMap: Record<string, string> = {
   eth: 'ethereum',
 };
 
-const typeColors: Record<string, string> = {
-  gold: '#FFB300',
-  usd: '#10B981',
-  eur: '#0055FF',
-  btc: '#F7931A',
-  eth: '#8B5CF6',
-  other: '#6B7280',
+const typeGradients: Record<string, [string, string]> = {
+  gold: ['#FFD54F', '#FFB300'],
+  usd: ['#6EE7B7', '#10B981'],
+  eur: ['#60A5FA', '#0055FF'],
+  btc: ['#FCD34D', '#F7931A'],
+  eth: ['#C4B5FD', '#8B5CF6'],
+  other: ['#9CA3AF', '#6B7280'],
 };
 
 export default function InvestmentScreen() {
@@ -142,8 +143,9 @@ export default function InvestmentScreen() {
         </ScrollView>
 
         {/* Mavi Yatırımlarım Kartı */}
-        <View className="mx-5 rounded-2xl p-5 mb-4" style={{ backgroundColor: '#0055FF' }}>
-          <View className="flex-row items-center justify-between mb-6">
+        <View className="mx-5 rounded-2xl mb-4 overflow-hidden">
+          <LinearGradient colors={['#4F7FFF', '#0033CC']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="p-5">
+            <View className="flex-row items-center justify-between mb-6">
             <View className="flex-row items-center gap-2">
               <Text className="text-white text-lg font-semibold">Yatırımlarım</Text>
               <MaterialCommunityIcons name="eye-outline" size={20} color="rgba(255,255,255,0.7)" />
@@ -171,6 +173,7 @@ export default function InvestmentScreen() {
               </View>
             </View>
           )}
+          </LinearGradient>
         </View>
 
         {/* Yatırım Listesi */}
@@ -179,27 +182,29 @@ export default function InvestmentScreen() {
           const currentVal = p ? inv.amount * p.sell : inv.cost;
           const profit = currentVal - inv.cost;
           const icon = typeIconMap[inv.type] || 'wallet';
-          const cardColor = typeColors[inv.type] || '#0055FF';
+          const gradient = typeGradients[inv.type] || ['#60A5FA', '#0055FF'];
           const birim = inv.type === 'gold' ? 'gram' : inv.type === 'btc' || inv.type === 'eth' ? 'adet' : 'birim';
           return (
             <TouchableOpacity key={inv.id} onLongPress={() => handleDelete(inv.id)} activeOpacity={0.7}
-              className="mx-5 rounded-2xl px-4 py-4 mb-3 flex-row items-center"
-              style={{ backgroundColor: cardColor, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 3 }}
+              className="mx-5 rounded-2xl mb-3 overflow-hidden"
+              style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 3 }}
             >
-              <View className="w-11 h-11 rounded-full bg-white/25 items-center justify-center mr-3">
-                <MaterialCommunityIcons name={icon as any} size={22} color="#fff" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-white font-bold text-base">{inv.label}</Text>
-                <Text className="text-white/70 text-xs">{inv.amount} {birim}</Text>
-              </View>
-              <View className="items-end mr-2">
-                <Text className="text-white font-bold text-base">{invFormatted(currentVal)} ₺</Text>
-                <Text className="text-sm font-bold text-white/80">
-                  {profit >= 0 ? '+' : ''}{invFormatted(profit)} ₺
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.6)" />
+              <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="flex-row items-center px-4 py-4">
+                <View className="w-11 h-11 rounded-full bg-white/25 items-center justify-center mr-3">
+                  <MaterialCommunityIcons name={icon as any} size={22} color="#fff" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-white font-bold text-base">{inv.label}</Text>
+                  <Text className="text-white/70 text-xs">{inv.amount} {birim}</Text>
+                </View>
+                <View className="items-end mr-2">
+                  <Text className="text-white font-bold text-base">{invFormatted(currentVal)} ₺</Text>
+                  <Text className="text-sm font-bold text-white/80">
+                    {profit >= 0 ? '+' : ''}{invFormatted(profit)} ₺
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.6)" />
+              </LinearGradient>
             </TouchableOpacity>
           );
         })}
