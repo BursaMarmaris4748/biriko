@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Sparkline from '@/components/sparkline';
 import { MarketPrice, Investment, fetchMarketPrices, loadInvestments, saveInvestments } from '@/services/market-data';
 
 const investmentTypes = [
@@ -20,6 +21,14 @@ const typeIconMap: Record<string, string> = {
   eur: 'currency-eur',
   btc: 'bitcoin',
   eth: 'ethereum',
+};
+
+const currencyColors: Record<string, string> = {
+  USD: '#10B981',
+  EUR: '#0055FF',
+  GA: '#FFB300',
+  BTC: '#F7931A',
+  ETH: '#8B5CF6',
 };
 
 const typeGradients: Record<string, [string, string]> = {
@@ -123,19 +132,23 @@ export default function InvestmentScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-5 pb-4" contentContainerStyle={{ gap: 10 }}>
           {prices.map(p => {
             const up = p.change >= 0;
+            const curColor = currencyColors[p.symbol] || '#0058bc';
             return (
-              <View key={p.symbol} className="bg-white rounded-2xl px-4 py-3 border border-[#e8ecf4] min-w-[135px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}>
+              <View key={p.symbol} className="bg-white rounded-2xl px-4 pt-3 pb-2 border border-[#e8ecf4] min-w-[155px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}>
                 <View className="flex-row items-center gap-2 mb-1">
-                  <MaterialCommunityIcons name={p.icon as any} size={16} color="#0058bc" />
-                  <Text className="text-[#727786] text-xs font-medium">{p.symbol}</Text>
+                  <MaterialCommunityIcons name={p.icon as any} size={18} color={curColor} />
+                  <Text className="text-xs font-semibold" style={{ color: curColor }}>{p.symbol}</Text>
                 </View>
-                <Text className="text-[#151c27] font-bold text-base">{invFormatted(p.sell)} ₺</Text>
+                <Text className="text-[#151c27] font-bold text-lg">{invFormatted(p.sell)} ₺</Text>
                 <View className="flex-row items-center gap-1 mt-0.5">
-                  <MaterialCommunityIcons name={up ? 'trending-up' : 'trending-down'} size={12} color={up ? '#10b981' : '#ba1a1a'} />
-                  <Text className={`text-xs font-semibold ${up ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>
+                  <MaterialCommunityIcons name={up ? 'trending-up' : 'trending-down'} size={14} color={up ? '#10b981' : '#ba1a1a'} />
+                  <Text className={`text-sm font-bold ${up ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>
                     {up ? '+' : ''}{p.change.toFixed(2)}%
                   </Text>
-                  <Text className="text-[#9ca3af] text-[10px] ml-1">Alış {invFormatted(p.buy)} ₺</Text>
+                </View>
+                <Text className="text-[#9ca3af] text-[10px] mt-0.5">Günlük değişim</Text>
+                <View className="mt-1 items-center">
+                  <Sparkline data={p.history} color={up ? '#10B981' : '#BA1A1A'} width={140} height={36} />
                 </View>
               </View>
             );
