@@ -45,7 +45,11 @@ export default function LoginScreen() {
     setLoading(true);
     const result = await signIn(email.trim(), password);
     setLoading(false);
-    if (result.error) Alert.alert('Giriş Başarısız', result.error);
+    if (result.error) {
+      Alert.alert('Giriş Başarısız', result.error);
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   const handleGoogleSignIn = async () => {
