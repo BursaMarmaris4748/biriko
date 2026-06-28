@@ -21,6 +21,15 @@ const typeIconMap: Record<string, string> = {
   eth: 'ethereum',
 };
 
+const typeColors: Record<string, string> = {
+  gold: '#FFB300',
+  usd: '#10B981',
+  eur: '#0055FF',
+  btc: '#F7931A',
+  eth: '#8B5CF6',
+  other: '#6B7280',
+};
+
 export default function InvestmentScreen() {
   const [prices, setPrices] = useState<MarketPrice[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
@@ -170,26 +179,27 @@ export default function InvestmentScreen() {
           const currentVal = p ? inv.amount * p.sell : inv.cost;
           const profit = currentVal - inv.cost;
           const icon = typeIconMap[inv.type] || 'wallet';
+          const cardColor = typeColors[inv.type] || '#0055FF';
           const birim = inv.type === 'gold' ? 'gram' : inv.type === 'btc' || inv.type === 'eth' ? 'adet' : 'birim';
           return (
             <TouchableOpacity key={inv.id} onLongPress={() => handleDelete(inv.id)} activeOpacity={0.7}
-              className="mx-5 bg-white rounded-2xl px-4 py-4 mb-3 flex-row items-center"
-              style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}
+              className="mx-5 rounded-2xl px-4 py-4 mb-3 flex-row items-center"
+              style={{ backgroundColor: cardColor, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 3 }}
             >
-              <View className="w-11 h-11 rounded-full bg-[#f0f4ff] items-center justify-center mr-3">
-                <MaterialCommunityIcons name={icon as any} size={22} color="#0055FF" />
+              <View className="w-11 h-11 rounded-full bg-white/25 items-center justify-center mr-3">
+                <MaterialCommunityIcons name={icon as any} size={22} color="#fff" />
               </View>
               <View className="flex-1">
-                <Text className="text-[#151c27] font-bold text-base">{inv.label}</Text>
-                <Text className="text-[#9ca3af] text-xs">{inv.amount} {birim}</Text>
+                <Text className="text-white font-bold text-base">{inv.label}</Text>
+                <Text className="text-white/70 text-xs">{inv.amount} {birim}</Text>
               </View>
               <View className="items-end mr-2">
-                <Text className="text-[#151c27] font-bold text-base">{invFormatted(currentVal)} ₺</Text>
-                <Text className={`text-sm font-bold ${profit >= 0 ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>
+                <Text className="text-white font-bold text-base">{invFormatted(currentVal)} ₺</Text>
+                <Text className="text-sm font-bold text-white/80">
                   {profit >= 0 ? '+' : ''}{invFormatted(profit)} ₺
                 </Text>
               </View>
-              <MaterialCommunityIcons name="chevron-right" size={20} color="#9ca3af" />
+              <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
           );
         })}
