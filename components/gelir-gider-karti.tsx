@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFinance } from '@/services/finance-context';
 import { useAuth } from '@/services/auth-context';
+import QuickMenu from './quick-menu';
 const paraFormat = (sayi: number): string => {
   const negatif = sayi < 0;
   return (negatif ? '-₺' : '₺') + Math.abs(sayi).toLocaleString('tr-TR', {
@@ -36,6 +37,7 @@ export const GelirGiderKarti: React.FC<{
   const { user } = useAuth();
   const kullaniciAdi = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Kullanıcı';
   const oran = totalGelir > 0 ? Math.round((totalGider / totalGelir) * 100) : 0;
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const sonIslemler = transactions.slice(0, 5);
 
@@ -55,10 +57,15 @@ export const GelirGiderKarti: React.FC<{
               <Text className="text-[#151c27] font-bold text-base">{kullaniciAdi}</Text>
             </View>
           </View>
-          <TouchableOpacity className="w-10 h-10 bg-white rounded-full items-center justify-center border border-[#e7eefe]">
-            <MaterialCommunityIcons name="bell" size={20} color="#414754" />
-            <View className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#ba1a1a] rounded-full border-2 border-white" />
-          </TouchableOpacity>
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity onPress={() => setMenuVisible(true)} className="w-10 h-10 bg-white rounded-full items-center justify-center border border-[#e7eefe]">
+              <MaterialCommunityIcons name="menu" size={20} color="#414754" />
+            </TouchableOpacity>
+            <TouchableOpacity className="w-10 h-10 bg-white rounded-full items-center justify-center border border-[#e7eefe]">
+              <MaterialCommunityIcons name="bell" size={20} color="#414754" />
+              <View className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#ba1a1a] rounded-full border-2 border-white" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Ana Bakiye Kartı */}
@@ -183,6 +190,8 @@ export const GelirGiderKarti: React.FC<{
             })
           )}
         </View>
+
+        <QuickMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
       </ScrollView>
     </SafeAreaView>
   );
