@@ -46,65 +46,86 @@ async function saveDailyOpen(prices: Record<string, number>): Promise<void> {
   await AsyncStorage.setItem(DAILY_OPEN_KEY, JSON.stringify({ date: getTodayKey(), prices }));
 }
 
+async function safeFetch<T>(url: string): Promise<T | null> {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) { console.warn(`[market-data] ${url} returned ${r.status}`); return null; }
+    return await r.json() as T;
+  } catch (e) {
+    console.warn(`[market-data] ${url} failed:`, e);
+    return null;
+  }
+}
+
 export async function fetchMarketPrices(): Promise<MarketPrice[]> {
   const now = Date.now();
   if (now - lastFetch < 15000 && cachedPrices.length) return cachedPrices;
 
-  try {
-    const exchangeRatesRes = fetch('https://api.exchangerate-api.com/v4/latest/TRY').then(r => r.ok ? r.json() : Promise.reject());
-    const goldRes = fetch('https://api.gold-api.com/price/XAU').then(r => r.ok ? r.json() : Promise.reject());
-    const coinRes = fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=try').then(r => r.ok ? r.json() : Promise.reject());
+  const [exchangeData, goldData, coinData] = await Promise.all([
+    safeFetch<any>('https://api.exchangerate-api.com/v4/latest/TRY'),
+    safeFetch<any>('https://api.gold-api.com/price/XAU'),
+    safeFetch<any>('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=try'),
+  ]);
 
-    const [exchangeData, goldData, coinData] = await Promise.all([exchangeRatesRes, goldRes, coinRes]);
-
-    const usdSell = 1 / exchangeData.rates.USD;
-    const eurSell = 1 / exchangeData.rates.EUR;
-    const goldOzUsd = goldData.price;
-    const gramAltinSell = (goldOzUsd * usdSell) / 31.1;
-
-    const rawPrices: Record<string, number> = {
-      USD: usdSell,
-      EUR: eurSell,
-      GA: gramAltinSell,
-      BTC: coinData.bitcoin.try,
-      ETH: coinData.ethereum.try,
-    };
-
-    const dailyOpen = await getDailyOpen();
-    const isNewDay = Object.keys(dailyOpen).length === 0;
-
-    const finalOpen = isNewDay ? rawPrices : dailyOpen;
-    if (isNewDay) await saveDailyOpen(rawPrices);
-
-    const newPrices: MarketPrice[] = Object.entries(rawPrices).map(([symbol, sell]) => {
-      const open = finalOpen[symbol] || sell;
-      const change = open > 0 ? ((sell - open) / open) * 100 : 0;
-
-      const names: Record<string, string> = { USD: 'Dolar', EUR: 'Euro', GA: 'Gram Altın', BTC: 'Bitcoin', ETH: 'Ethereum' };
-      const icons: Record<string, string> = { USD: 'currency-usd', EUR: 'currency-eur', GA: 'gold', BTC: 'bitcoin', ETH: 'ethereum' };
-
-      if (!priceHistory[symbol]) priceHistory[symbol] = [];
-      priceHistory[symbol].push(sell);
-      if (priceHistory[symbol].length > 20) priceHistory[symbol].shift();
-
-      return {
-        symbol,
-        name: names[symbol] || symbol,
-        buy: sell * 0.995,
-        sell,
-        change,
-        icon: icons[symbol] || 'currency-usd',
-        dailyOpen: open,
-        history: [...priceHistory[symbol]],
-      };
-    });
-
-    cachedPrices = newPrices;
-    lastFetch = now;
-    return newPrices;
-  } catch {
+  if (!exchangeData && !coinData) {
     return cachedPrices.length ? cachedPrices : [];
   }
+
+  const usdRate = exchangeData ? 1 / exchangeData.rates.USD : (cachedPrices.find(p => p.symbol === 'USD')?.sell || 0);
+  const eurRate = exchangeData ? 1 / exchangeData.rates.EUR : (cachedPrices.find(p => p.symbol === 'EUR')?.sell || 0);
+  const goldOzUsd = goldData?.price ?? (cachedPrices.find(p => p.symbol === 'GA')?.sell ?? 0);
+  const gramAltin = goldOzUsd && usdRate ? (goldOzUsd * usdRate) / 31.1 : 0;
+
+  const rawPrices: Record<string, number> = {};
+  if (usdRate) rawPrices.USD = usdRate;
+  if (eurRate) rawPrices.EUR = eurRate;
+  if (gramAltin) rawPrices.GA = gramAltin;
+  if (coinData?.bitcoin?.try) rawPrices.BTC = coinData.bitcoin.try;
+  if (coinData?.ethereum?.try) rawPrices.ETH = coinData.ethereum.try;
+
+  const symbols = ['USD', 'EUR', 'GA', 'BTC', 'ETH'];
+  const hasAll = symbols.every(s => rawPrices[s]);
+
+  const dailyOpen = await getDailyOpen();
+  const isNewDay = Object.keys(dailyOpen).length === 0;
+
+  const finalOpen = isNewDay ? rawPrices : dailyOpen;
+  if (isNewDay && hasAll) await saveDailyOpen(rawPrices);
+
+  const names: Record<string, string> = { USD: 'Dolar', EUR: 'Euro', GA: 'Gram Altın', BTC: 'Bitcoin', ETH: 'Ethereum' };
+  const icons: Record<string, string> = { USD: 'currency-usd', EUR: 'currency-eur', GA: 'gold', BTC: 'bitcoin', ETH: 'ethereum' };
+
+  const existingCached = cachedPrices.length > 0;
+
+  const newPrices: MarketPrice[] = symbols.map(symbol => {
+    const sell = rawPrices[symbol] || (existingCached ? cachedPrices.find(p => p.symbol === symbol)?.sell ?? 0 : 0);
+    if (!sell) return null;
+
+    const open = finalOpen[symbol] || sell;
+    const change = open > 0 ? ((sell - open) / open) * 100 : 0;
+
+    if (!priceHistory[symbol]) priceHistory[symbol] = [];
+    priceHistory[symbol].push(sell);
+    if (priceHistory[symbol].length > 20) priceHistory[symbol].shift();
+
+    return {
+      symbol,
+      name: names[symbol] || symbol,
+      buy: sell * 0.995,
+      sell,
+      change,
+      icon: icons[symbol] || 'currency-usd',
+      dailyOpen: open,
+      history: [...priceHistory[symbol]],
+    };
+  }).filter(Boolean) as MarketPrice[];
+
+  if (newPrices.length) {
+    cachedPrices = newPrices;
+    lastFetch = now;
+  }
+
+  return newPrices.length ? newPrices : cachedPrices;
 }
 
 export async function loadInvestments(): Promise<Investment[]> {
