@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,10 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFinance } from '@/services/finance-context';
 import { useAuth } from '@/services/auth-context';
-import QuickMenu from './quick-menu';
 const paraFormat = (sayi: number): string => {
   const negatif = sayi < 0;
   return (negatif ? '-₺' : '₺') + Math.abs(sayi).toLocaleString('tr-TR', {
@@ -33,11 +33,11 @@ export const GelirGiderKarti: React.FC<{
   onGelirEkle: () => void;
   onGiderEkle: () => void;
 }> = ({ onGelirEkle, onGiderEkle }) => {
+  const router = useRouter();
   const { transactions, totalGelir, totalGider, net, loading } = useFinance();
   const { user } = useAuth();
   const kullaniciAdi = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Kullanıcı';
   const oran = totalGelir > 0 ? Math.round((totalGider / totalGelir) * 100) : 0;
-  const [menuVisible, setMenuVisible] = useState(false);
 
   const sonIslemler = transactions.slice(0, 5);
 
@@ -58,7 +58,7 @@ export const GelirGiderKarti: React.FC<{
             </View>
           </View>
           <View className="flex-row items-center gap-2">
-            <TouchableOpacity onPress={() => setMenuVisible(true)} className="w-10 h-10 bg-white rounded-full items-center justify-center border border-[#e7eefe]">
+            <TouchableOpacity onPress={() => router.push('/hamburger-menu' as any)} className="w-10 h-10 bg-white rounded-full items-center justify-center border border-[#e7eefe]">
               <MaterialCommunityIcons name="menu" size={20} color="#414754" />
             </TouchableOpacity>
             <TouchableOpacity className="w-10 h-10 bg-white rounded-full items-center justify-center border border-[#e7eefe]">
@@ -191,7 +191,6 @@ export const GelirGiderKarti: React.FC<{
           )}
         </View>
 
-        <QuickMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
       </ScrollView>
     </SafeAreaView>
   );
