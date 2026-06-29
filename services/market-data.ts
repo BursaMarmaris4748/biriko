@@ -20,12 +20,35 @@ export interface Investment {
   date: string;
 }
 
+export interface StockHolding {
+  id: string;
+  symbol: string;
+  exchange: 'BIST' | 'US';
+  shares: number;
+  costPerShare: number;
+  date: string;
+}
+
+export interface StockPrice {
+  symbol: string;
+  name: string;
+  price: number;
+  previousClose: number;
+  change: number;
+  changePercent: number;
+  currency: string;
+  history: number[];
+}
+
 const STORAGE_KEY = '@biriko/investments';
+const STOCK_KEY = '@biriko/stocks';
 const DAILY_OPEN_KEY = '@biriko/daily-open';
 
 let cachedPrices: MarketPrice[] = [];
 let lastFetch = 0;
 let priceHistory: Record<string, number[]> = {};
+let cachedStockPrices: Record<string, StockPrice> = {};
+let lastStockFetch = 0;
 
 function getTodayKey(): string {
   const d = new Date();
@@ -135,4 +158,93 @@ export async function loadInvestments(): Promise<Investment[]> {
 
 export async function saveInvestments(list: Investment[]): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+export async function loadStocks(): Promise<StockHolding[]> {
+  try { const json = await AsyncStorage.getItem(STOCK_KEY); return json ? JSON.parse(json) : []; }
+  catch { return []; }
+}
+
+export async function saveStocks(list: StockHolding[]): Promise<void> {
+  await AsyncStorage.setItem(STOCK_KEY, JSON.stringify(list));
+}
+
+const STOCK_NAMES: Record<string, string> = {
+  THYAO: 'Türk Hava Yolları', GARAN: 'Garanti BBVA', AKBNK: 'Akbank',
+  EREGL: 'Ereğli Demir Çelik', TUPRS: 'Tüpraş', ASELS: 'Aselsan',
+  KCHOL: 'Koç Holding', SAHOL: 'Sabancı Holding', FROTO: 'Ford Otosan',
+  SISE: 'Şişe Cam', PGSUS: 'Pegasus', HEKTS: 'Hektaş',
+  BİM: 'BİM Birleşik Mağazalar', TCELL: 'Turkcell', VAKBN: 'Vakıfbank',
+  YKBNK: 'Yapı Kredi', ISCTR: 'İş Bankası', SOKM: 'Şok Marketler',
+  MGROS: 'Migros', KOZAA: 'Koza Altın',
+  AAPL: 'Apple', MSFT: 'Microsoft', GOOGL: 'Alphabet',
+  AMZN: 'Amazon', NVDA: 'NVIDIA', META: 'Meta',
+  TSLA: 'Tesla', JPM: 'JPMorgan Chase', V: 'Visa',
+  SPY: 'SPDR S&P 500 ETF', QQQ: 'Invesco QQQ Trust', AMD: 'AMD',
+};
+
+function guessStockName(symbol: string): string {
+  if (STOCK_NAMES[symbol]) return STOCK_NAMES[symbol];
+  const clean = symbol.replace('.IS', '');
+  if (STOCK_NAMES[clean]) return STOCK_NAMES[clean];
+  return symbol;
+}
+
+export async function fetchStockPrices(holdings: StockHolding[]): Promise<StockPrice[]> {
+  if (!holdings.length) return [];
+
+  const now = Date.now();
+  if (now - lastStockFetch < 20000 && Object.keys(cachedStockPrices).length) {
+    return holdings.map(h => cachedStockPrices[h.symbol]).filter(Boolean);
+  }
+
+  const uniqueSymbols = [...new Set(holdings.map(h => h.exchange === 'BIST' ? `${h.symbol}.IS` : h.symbol))];
+  if (!uniqueSymbols.length) return [];
+
+  const priceMap: Record<string, StockPrice> = { ...cachedStockPrices };
+
+  const results = await Promise.allSettled(
+    uniqueSymbols.map(sym =>
+      safeFetch<any>(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=5d`
+      ).then(data => {
+        const result = data?.chart?.result?.[0];
+        if (!result) return null;
+        const meta = result.meta;
+        const quotes = result.indicators?.quote?.[0];
+        const closes = quotes?.close?.filter((c: number | null) => c !== null) || [];
+        const cleanSym = sym.replace('.IS', '');
+        return {
+          symbol: cleanSym,
+          name: guessStockName(cleanSym),
+          price: meta.regularMarketPrice ?? 0,
+          previousClose: meta.previousClose ?? meta.chartPreviousClose ?? 0,
+          change: (meta.regularMarketPrice ?? 0) - (meta.previousClose ?? meta.chartPreviousClose ?? 0),
+          changePercent: meta.previousClose ? ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100 : 0,
+          currency: meta.currency || 'TRY',
+          history: closes,
+        } as StockPrice;
+      })
+    )
+  );
+
+  results.forEach(r => {
+    if (r.status === 'fulfilled' && r.value) {
+      priceMap[r.value.symbol] = r.value;
+      if (!priceHistory[r.value.symbol]) priceHistory[r.value.symbol] = [];
+      if (r.value.price > 0) {
+        priceHistory[r.value.symbol].push(r.value.price);
+        if (priceHistory[r.value.symbol].length > 20) priceHistory[r.value.symbol].shift();
+      }
+    }
+  });
+
+  cachedStockPrices = priceMap;
+  lastStockFetch = now;
+
+  return holdings.map(h => {
+    const sp = priceMap[h.symbol];
+    if (sp) return { ...sp, history: [...(priceHistory[h.symbol] || [])] };
+    return { symbol: h.symbol, name: guessStockName(h.symbol), price: 0, previousClose: 0, change: 0, changePercent: 0, currency: 'TRY', history: [] };
+  });
 }
