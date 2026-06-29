@@ -69,11 +69,30 @@ async function saveDailyOpen(prices: Record<string, number>): Promise<void> {
   await AsyncStorage.setItem(DAILY_OPEN_KEY, JSON.stringify({ date: getTodayKey(), prices }));
 }
 
+const YAHOO_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Origin': 'https://finance.yahoo.com',
+  'Referer': 'https://finance.yahoo.com/',
+};
+
 async function safeFetch<T>(url: string): Promise<T | null> {
+  const tryFetch = async (u: string): Promise<T | null> => {
+    const r = await fetch(u, { headers: YAHOO_HEADERS });
+    if (!r.ok) { console.warn(`[market-data] ${u} returned ${r.status}`); return null; }
+    const text = await r.text();
+    try { return JSON.parse(text) as T; }
+    catch { console.warn(`[market-data] ${u} returned non-JSON`); return null; }
+  };
   try {
-    const r = await fetch(url);
-    if (!r.ok) { console.warn(`[market-data] ${url} returned ${r.status}`); return null; }
-    return await r.json() as T;
+    const result = await tryFetch(url);
+    if (result) return result;
+    if (url.includes('query1.finance.yahoo.com')) {
+      const fallback = url.replace('query1', 'query2');
+      console.warn(`[market-data] falling back to ${fallback}`);
+      return await tryFetch(fallback);
+    }
+    return null;
   } catch (e) {
     console.warn(`[market-data] ${url} failed:`, e);
     return null;
