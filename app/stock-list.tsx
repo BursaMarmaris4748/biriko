@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, TextInput 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import StockIcon from '@/components/stock-icon';
 import { fetchStockPrices, StockHolding, StockPrice } from '@/services/market-data';
 
 const BIST_SYMBOLS = [
@@ -84,7 +85,8 @@ export default function StockListScreen() {
                 className={`flex-row items-center px-4 py-3.5 ${i === 0 ? 'rounded-t-xl' : ''} ${i === filtered.length - 1 ? 'rounded-b-xl' : ''} bg-white border-b border-[#f0f2f5]`}
                 style={{ shadowColor: i === 0 ? '#000' : 'transparent', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 3, elevation: i === 0 ? 1 : 0 }}
               >
-                <View className="flex-1">
+                <StockIcon symbol={p.symbol} name={p.name} size={36} />
+                <View className="flex-1 ml-3">
                   <View className="flex-row items-center gap-2">
                     <Text className="text-[#151c27] font-bold text-sm">{p.symbol}</Text>
                     <Text className="text-[#9ca3af] text-[10px] flex-shrink" numberOfLines={1}>{p.name}</Text>

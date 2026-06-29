@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Polyline } from 'react-native-svg';
+import StockIcon from '@/components/stock-icon';
 import { fetchStockHistory, fetchStockPrices, loadStocks, saveStocks, StockHolding } from '@/services/market-data';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -131,12 +132,13 @@ export default function StockDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} className="mr-3">
           <MaterialCommunityIcons name="arrow-left" size={24} color="#151c27" />
         </TouchableOpacity>
-        <View className="flex-1">
+        <StockIcon symbol={symbol} name={name} size={40} />
+        <View className="flex-1 ml-3">
           <Text className="text-[#151c27] text-xl font-bold">{symbol}</Text>
           <Text className="text-[#727786] text-xs">{name}</Text>
         </View>
         <View className="bg-gray-100 rounded-lg px-2.5 py-1.5">
-          <Text className="font-bold text-xs" style={{ color: exColor }}>{exchange}</Text>
+          <Text className="font-bold text-xs" style={{ color: exColor }}>{exchange === 'BIST' ? 'BIST' : 'NASDAQ'}</Text>
         </View>
       </View>
 

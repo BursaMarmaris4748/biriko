@@ -209,15 +209,10 @@ function guessStockName(symbol: string): string {
 export async function fetchStockPrices(holdings: StockHolding[]): Promise<StockPrice[]> {
   if (!holdings.length) return [];
 
-  const now = Date.now();
-  if (now - lastStockFetch < 20000 && Object.keys(cachedStockPrices).length) {
-    return holdings.map(h => cachedStockPrices[h.symbol]).filter(Boolean);
-  }
-
   const uniqueSymbols = [...new Set(holdings.map(h => h.exchange === 'BIST' ? `${h.symbol}.IS` : h.symbol))];
   if (!uniqueSymbols.length) return [];
 
-  const priceMap: Record<string, StockPrice> = { ...cachedStockPrices };
+  const priceMap: Record<string, StockPrice> = {};
 
   const results = await Promise.allSettled(
     uniqueSymbols.map(sym =>
@@ -230,13 +225,15 @@ export async function fetchStockPrices(holdings: StockHolding[]): Promise<StockP
         const quotes = result.indicators?.quote?.[0];
         const closes = quotes?.close?.filter((c: number | null) => c !== null) || [];
         const cleanSym = sym.replace('.IS', '');
+        const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? 0;
+        const curPrice = meta.regularMarketPrice ?? 0;
         return {
           symbol: cleanSym,
-          name: guessStockName(cleanSym),
-          price: meta.regularMarketPrice ?? 0,
-          previousClose: meta.previousClose ?? meta.chartPreviousClose ?? 0,
-          change: (meta.regularMarketPrice ?? 0) - (meta.previousClose ?? meta.chartPreviousClose ?? 0),
-          changePercent: meta.previousClose ? ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100 : 0,
+          name: meta.shortName || meta.longName || guessStockName(cleanSym),
+          price: curPrice,
+          previousClose: prevClose,
+          change: curPrice - prevClose,
+          changePercent: prevClose > 0 ? ((curPrice - prevClose) / prevClose) * 100 : 0,
           currency: meta.currency || 'TRY',
           history: closes,
         } as StockPrice;
@@ -256,7 +253,7 @@ export async function fetchStockPrices(holdings: StockHolding[]): Promise<StockP
   });
 
   cachedStockPrices = priceMap;
-  lastStockFetch = now;
+  lastStockFetch = Date.now();
 
   return holdings.map(h => {
     const sp = priceMap[h.symbol];

@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import Sparkline from '@/components/sparkline';
+import StockIcon from '@/components/stock-icon';
 import {
   MarketPrice, Investment, StockHolding, StockPrice,
   fetchMarketPrices, loadInvestments, saveInvestments,
@@ -267,8 +268,8 @@ export default function InvestmentScreen() {
                     <TouchableOpacity key={`bist-${h?.id || sp.symbol}`} onPress={() => router.push({ pathname: '/stock-detail', params: { symbol: sp.symbol, exchange: 'BIST' } })} onLongPress={() => h && handleStockDelete(h.id)} activeOpacity={0.85}
                       className="bg-white rounded-2xl px-4 pt-3 pb-3 border border-[#e8ecf4] min-w-[165px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
                     >
-                      <View className="flex-row items-center gap-2 mb-1">
-                        <View className="w-6 h-6 rounded-md bg-[#FCE8ED] items-center justify-center"><Text className="text-[10px] font-bold text-[#E11D48]">BIST</Text></View>
+                      <View className="flex-row items-center gap-2 mb-2">
+                        <StockIcon symbol={sp.symbol} name={sp.name} size={28} />
                         <Text className="text-xs font-bold text-[#E11D48]">{sp.symbol}</Text>
                       </View>
                       {sp.price > 0 ? (
@@ -312,8 +313,8 @@ export default function InvestmentScreen() {
                     <TouchableOpacity key={`us-${h?.id || sp.symbol}`} onPress={() => router.push({ pathname: '/stock-detail', params: { symbol: sp.symbol, exchange: 'US' } })} onLongPress={() => h && handleStockDelete(h.id)} activeOpacity={0.85}
                       className="bg-white rounded-2xl px-4 pt-3 pb-3 border border-[#e8ecf4] min-w-[165px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
                     >
-                      <View className="flex-row items-center gap-2 mb-1">
-                        <View className="w-6 h-6 rounded-md bg-[#DBEAFE] items-center justify-center"><Text className="text-[8px] font-bold text-[#2563EB]">NASDAQ</Text></View>
+                      <View className="flex-row items-center gap-2 mb-2">
+                        <StockIcon symbol={sp.symbol} name={sp.name} size={28} />
                         <Text className="text-xs font-bold text-[#2563EB]">{sp.symbol}</Text>
                       </View>
                       {sp.price > 0 ? (
