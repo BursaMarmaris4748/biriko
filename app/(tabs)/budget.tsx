@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import Sparkline from '@/components/sparkline';
 import {
   MarketPrice, Investment, StockHolding, StockPrice,
@@ -36,6 +37,7 @@ const typeGradients: Record<string, [string, string]> = {
 const stockExchangeColors: Record<string, string> = { BIST: '#E11D48', US: '#2563EB' };
 
 export default function InvestmentScreen() {
+  const router = useRouter();
   const [prices, setPrices] = useState<MarketPrice[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -245,20 +247,43 @@ export default function InvestmentScreen() {
         {/* Hisse Senetleri Borsa İstanbul */}
         {stocks.filter(s => s.exchange === 'BIST').length > 0 && (
           <>
-            <View className="flex-row items-center justify-between px-5 mb-2">
+            <TouchableOpacity onPress={() => router.push('/stock-list?exchange=BIST')} className="flex-row items-center justify-between px-5 mb-2">
               <View className="flex-row items-center gap-2">
                 <MaterialCommunityIcons name="chart-line" size={18} color="#E11D48" />
                 <Text className="text-[#151c27] font-bold text-base">Borsa İstanbul</Text>
               </View>
-              <TouchableOpacity onPress={() => { setNewExchange('BIST'); setShowStockAddModal(true); }} className="bg-[#E11D48] rounded-xl px-3 py-1.5">
-                <Text className="text-white font-bold text-xs">+ Hisse Ekle</Text>
-              </TouchableOpacity>
-            </View>
+              <View className="flex-row items-center gap-2">
+                <MaterialCommunityIcons name="plus-circle" size={18} color="#E11D48" />
+                <Text className="text-[#E11D48] font-bold text-xs">Piyasayı Keşfet</Text>
+              </View>
+            </TouchableOpacity>
             {stockLoading && stocks.filter(s => s.exchange === 'BIST').length > 0 ? (
               <ActivityIndicator size="small" color="#E11D48" className="py-4" />
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-5 pb-4" contentContainerStyle={{ gap: 10 }}>
-                {stockPrices.filter(sp => stocks.some(s => s.symbol === sp.symbol && s.exchange === 'BIST')).map(sp => stockCard(sp, 'BIST'))}
+                {stockPrices.filter(sp => stocks.some(s => s.symbol === sp.symbol && s.exchange === 'BIST')).map(sp => {
+                  const h = stocks.find(s => s.symbol === sp.symbol && s.exchange === 'BIST');
+                  return (
+                    <TouchableOpacity key={`bist-${h?.id || sp.symbol}`} onPress={() => router.push({ pathname: '/stock-detail', params: { symbol: sp.symbol, exchange: 'BIST' } })} onLongPress={() => h && handleStockDelete(h.id)} activeOpacity={0.85}
+                      className="bg-white rounded-2xl px-4 pt-3 pb-3 border border-[#e8ecf4] min-w-[165px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
+                    >
+                      <View className="flex-row items-center gap-2 mb-1">
+                        <View className="w-6 h-6 rounded-md bg-[#FCE8ED] items-center justify-center"><Text className="text-[10px] font-bold text-[#E11D48]">BIST</Text></View>
+                        <Text className="text-xs font-bold text-[#E11D48]">{sp.symbol}</Text>
+                      </View>
+                      {sp.price > 0 ? (
+                        <>
+                          <Text className="text-[#151c27] font-bold text-base mb-1">{sp.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</Text>
+                          <View className="flex-row items-center gap-1">
+                            <MaterialCommunityIcons name={sp.changePercent >= 0 ? 'trending-up' : 'trending-down'} size={13} color={sp.changePercent >= 0 ? '#10b981' : '#ba1a1a'} />
+                            <Text className={`text-xs font-bold ${sp.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>{sp.changePercent >= 0 ? '+' : ''}{sp.changePercent.toFixed(2)}%</Text>
+                            {h && <Text className="text-[#9ca3af] text-[10px] ml-auto">{h.shares} ad</Text>}
+                          </View>
+                        </>
+                      ) : <Text className="text-[#9ca3af] text-xs italic py-2">Yükleniyor...</Text>}
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             )}
           </>
@@ -267,37 +292,61 @@ export default function InvestmentScreen() {
         {/* Hisse Senetleri ABD */}
         {stocks.filter(s => s.exchange === 'US').length > 0 && (
           <>
-            <View className="flex-row items-center justify-between px-5 mb-2">
+            <TouchableOpacity onPress={() => router.push('/stock-list?exchange=US')} className="flex-row items-center justify-between px-5 mb-2">
               <View className="flex-row items-center gap-2">
                 <MaterialCommunityIcons name="chart-line" size={18} color="#2563EB" />
                 <Text className="text-[#151c27] font-bold text-base">ABD Borsaları</Text>
               </View>
-              <TouchableOpacity onPress={() => { setNewExchange('US'); setShowStockAddModal(true); }} className="bg-[#2563EB] rounded-xl px-3 py-1.5">
-                <Text className="text-white font-bold text-xs">+ Hisse Ekle</Text>
-              </TouchableOpacity>
-            </View>
+              <View className="flex-row items-center gap-2">
+                <MaterialCommunityIcons name="plus-circle" size={18} color="#2563EB" />
+                <Text className="text-[#2563EB] font-bold text-xs">Piyasayı Keşfet</Text>
+              </View>
+            </TouchableOpacity>
             {stockLoading && stocks.filter(s => s.exchange === 'US').length > 0 ? (
               <ActivityIndicator size="small" color="#2563EB" className="py-4" />
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-5 pb-4" contentContainerStyle={{ gap: 10 }}>
-                {stockPrices.filter(sp => stocks.some(s => s.symbol === sp.symbol && s.exchange === 'US')).map(sp => stockCard(sp, 'US'))}
+                {stockPrices.filter(sp => stocks.some(s => s.symbol === sp.symbol && s.exchange === 'US')).map(sp => {
+                  const h = stocks.find(s => s.symbol === sp.symbol && s.exchange === 'US');
+                  return (
+                    <TouchableOpacity key={`us-${h?.id || sp.symbol}`} onPress={() => router.push({ pathname: '/stock-detail', params: { symbol: sp.symbol, exchange: 'US' } })} onLongPress={() => h && handleStockDelete(h.id)} activeOpacity={0.85}
+                      className="bg-white rounded-2xl px-4 pt-3 pb-3 border border-[#e8ecf4] min-w-[165px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
+                    >
+                      <View className="flex-row items-center gap-2 mb-1">
+                        <View className="w-6 h-6 rounded-md bg-[#DBEAFE] items-center justify-center"><Text className="text-[8px] font-bold text-[#2563EB]">NASDAQ</Text></View>
+                        <Text className="text-xs font-bold text-[#2563EB]">{sp.symbol}</Text>
+                      </View>
+                      {sp.price > 0 ? (
+                        <>
+                          <Text className="text-[#151c27] font-bold text-base mb-1">{sp.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {sp.currency}</Text>
+                          <View className="flex-row items-center gap-1">
+                            <MaterialCommunityIcons name={sp.changePercent >= 0 ? 'trending-up' : 'trending-down'} size={13} color={sp.changePercent >= 0 ? '#10b981' : '#ba1a1a'} />
+                            <Text className={`text-xs font-bold ${sp.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>{sp.changePercent >= 0 ? '+' : ''}{sp.changePercent.toFixed(2)}%</Text>
+                            {h && <Text className="text-[#9ca3af] text-[10px] ml-auto">{h.shares} ad</Text>}
+                          </View>
+                        </>
+                      ) : <Text className="text-[#9ca3af] text-xs italic py-2">Yükleniyor...</Text>}
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             )}
           </>
         )}
 
-        {/* Hisse Eklenmemişse Ekle Butonu */}
+        {/* Hisse Eklenmemişse Keşfet Butonu */}
         {stocks.length === 0 && (
           <View className="mx-5 mb-4">
+            <Text className="text-[#727786] text-xs font-semibold mb-2 ml-1">HİSSE SENETLERİ</Text>
             <View className="flex-row gap-3">
-              <TouchableOpacity onPress={() => { setNewExchange('BIST'); setShowStockAddModal(true); }}
+              <TouchableOpacity onPress={() => router.push('/stock-list?exchange=BIST')}
                 className="flex-1 bg-white rounded-2xl p-4 border border-[#e8ecf4] items-center" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
               >
                 <MaterialCommunityIcons name="chart-line" size={32} color="#E11D48" />
                 <Text className="text-[#151c27] font-bold text-sm mt-2">Borsa İstanbul</Text>
-                <Text className="text-[#9ca3af] text-[11px] mt-1">Hisse senedi ekle</Text>
+                <Text className="text-[#9ca3af] text-[11px] mt-1">Hisseleri keşfet</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setNewExchange('US'); setShowStockAddModal(true); }}
+              <TouchableOpacity onPress={() => router.push('/stock-list?exchange=US')}
                 className="flex-1 bg-white rounded-2xl p-4 border border-[#e8ecf4] items-center" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
               >
                 <MaterialCommunityIcons name="chart-line" size={32} color="#2563EB" />

@@ -151,6 +151,22 @@ export async function fetchMarketPrices(): Promise<MarketPrice[]> {
   return newPrices.length ? newPrices : cachedPrices;
 }
 
+export async function fetchStockHistory(symbol: string, range: '1d' | '5d' | '1mo' | '3mo' | '1y' | '5y' = '1mo'): Promise<{ timestamp: number[]; close: number[]; high: number[]; low: number[] }> {
+  const intervals: Record<string, string> = { '1d': '5m', '5d': '1d', '1mo': '1d', '3mo': '1wk', '1y': '1wk', '5y': '1mo' };
+  try {
+    const data = await safeFetch<any>(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${intervals[range]}&range=${range}`);
+    const result = data?.chart?.result?.[0];
+    if (!result) return { timestamp: [], close: [], high: [], low: [] };
+    const quotes = result.indicators?.quote?.[0];
+    return {
+      timestamp: result.timestamp || [],
+      close: quotes?.close?.filter((c: number | null) => c !== null) || [],
+      high: quotes?.high?.filter((h: number | null) => h !== null) || [],
+      low: quotes?.low?.filter((l: number | null) => l !== null) || [],
+    };
+  } catch { return { timestamp: [], close: [], high: [], low: [] }; }
+}
+
 export async function loadInvestments(): Promise<Investment[]> {
   try { const json = await AsyncStorage.getItem(STORAGE_KEY); return json ? JSON.parse(json) : []; }
   catch { return []; }
