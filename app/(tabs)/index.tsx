@@ -4,8 +4,10 @@ import { GelirGiderKarti } from '@/components/gelir-gider-karti';
 import { IslemEkleModal } from '@/components/islem-ekle-modal';
 import { getScannedData } from '@/services/scan-store';
 import { useFinance } from '@/services/finance-context';
+import { useTheme } from '@/contexts/theme-context';
 
 export default function HomeScreen() {
+  const { colors, isDark } = useTheme();
   const { addTransaction, refresh } = useFinance();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'gelir' | 'gider'>('gelir');

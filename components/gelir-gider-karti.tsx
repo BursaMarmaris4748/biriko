@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFinance } from '@/services/finance-context';
 import { useAuth } from '@/services/auth-context';
+import { useTheme } from '@/contexts/theme-context';
 const paraFormat = (sayi: number): string => {
   const negatif = sayi < 0;
   return (negatif ? '-₺' : '₺') + Math.abs(sayi).toLocaleString('tr-TR', {
@@ -35,6 +36,7 @@ export const GelirGiderKarti: React.FC<{
 }> = ({ onGelirEkle, onGiderEkle }) => {
   const router = useRouter();
   const { transactions, totalGelir, totalGider, net, loading } = useFinance();
+  const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const kullaniciAdi = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Kullanıcı';
   const oran = totalGelir > 0 ? Math.round((totalGider / totalGelir) * 100) : 0;
@@ -42,7 +44,7 @@ export const GelirGiderKarti: React.FC<{
   const sonIslemler = transactions.slice(0, 5);
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f2f5f9]" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Profil Başlığı */}
         <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
@@ -53,16 +55,16 @@ export const GelirGiderKarti: React.FC<{
               </Text>
             </View>
             <View>
-              <Text className="text-[#727786] text-xs font-medium">Merhaba,</Text>
-              <Text className="text-[#151c27] font-bold text-base">{kullaniciAdi}</Text>
+              <Text className="text-xs font-medium" style={{ color: colors.text2 }}>Merhaba,</Text>
+              <Text className="font-bold text-base" style={{ color: colors.text }}>{kullaniciAdi}</Text>
             </View>
           </View>
           <View className="flex-row items-center gap-2">
-            <TouchableOpacity onPress={() => router.push('/hamburger-menu' as any)} className="w-10 h-10 bg-white rounded-full items-center justify-center border border-[#e7eefe]">
-              <MaterialCommunityIcons name="menu" size={20} color="#414754" />
+            <TouchableOpacity onPress={() => router.push('/hamburger-menu' as any)} className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+              <MaterialCommunityIcons name="menu" size={20} color={colors.text2} />
             </TouchableOpacity>
-            <TouchableOpacity className="w-10 h-10 bg-white rounded-full items-center justify-center border border-[#e7eefe]">
-              <MaterialCommunityIcons name="bell" size={20} color="#414754" />
+            <TouchableOpacity className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+              <MaterialCommunityIcons name="bell" size={20} color={colors.text2} />
               <View className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#ba1a1a] rounded-full border-2 border-white" />
             </TouchableOpacity>
           </View>
@@ -104,35 +106,35 @@ export const GelirGiderKarti: React.FC<{
 
         {/* Gelir / Gider Özet Kartları */}
         <View className="flex-row gap-3 mx-4 mb-5">
-          <View className="flex-1 bg-white rounded-2xl p-4 border border-[#e7eefe]">
+          <View className="flex-1 rounded-2xl p-4" style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
             <View className="flex-row items-center gap-2 mb-2">
               <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: '#d1fae5' }}>
                 <MaterialCommunityIcons name="arrow-down" size={16} color="#065f46" />
               </View>
-              <Text className="text-[#727786] text-xs font-bold tracking-wider uppercase">Gelir</Text>
+              <Text className="text-xs font-bold tracking-wider uppercase" style={{ color: colors.text2 }}>Gelir</Text>
             </View>
             <Text className="text-[#065f46] font-bold text-xl">{paraFormat(totalGelir)}</Text>
           </View>
-          <View className="flex-1 bg-white rounded-2xl p-4 border border-[#e7eefe]">
+          <View className="flex-1 rounded-2xl p-4" style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
             <View className="flex-row items-center gap-2 mb-2">
               <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: '#ffdad6' }}>
                 <MaterialCommunityIcons name="arrow-up" size={16} color="#93000a" />
               </View>
-              <Text className="text-[#727786] text-xs font-bold tracking-wider uppercase">Gider</Text>
+              <Text className="text-xs font-bold tracking-wider uppercase" style={{ color: colors.text2 }}>Gider</Text>
             </View>
             <Text className="text-[#93000a] font-bold text-xl">{paraFormat(totalGider)}</Text>
           </View>
         </View>
 
         {/* Harcama Oranı */}
-        <View className="mx-4 mb-5 bg-white rounded-2xl p-4 border border-[#e7eefe]">
+        <View className="mx-4 mb-5 rounded-2xl p-4" style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
           <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-[#727786] text-xs font-semibold">Harcama Oranı</Text>
+            <Text className="text-xs font-semibold" style={{ color: colors.text2 }}>Harcama Oranı</Text>
             <Text className={`font-bold text-xs ${oran > 80 ? 'text-[#93000a]' : oran > 50 ? 'text-[#9a3412]' : 'text-[#065f46]'}`}>
               %{oran}
             </Text>
           </View>
-          <View className="h-2 w-full bg-[#dce2f3] rounded-full overflow-hidden">
+          <View className="h-2 w-full rounded-full overflow-hidden" style={{ backgroundColor: colors.shimmer }}>
             <View
               className="h-full rounded-full"
               style={{
@@ -146,21 +148,21 @@ export const GelirGiderKarti: React.FC<{
         {/* Son İşlemler */}
         <View className="mx-4 mb-5">
           <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-[#151c27] font-bold text-base">Son İşlemler</Text>
+            <Text className="font-bold text-base" style={{ color: colors.text }}>Son İşlemler</Text>
             <TouchableOpacity>
-              <Text className="text-[#0058bc] text-xs font-semibold">Tümünü Gör</Text>
+              <Text className="text-xs font-semibold" style={{ color: colors.accent }}>Tümünü Gör</Text>
             </TouchableOpacity>
           </View>
 
           {loading ? (
             <View className="items-center py-8">
-              <Text className="text-[#727786] text-sm">Yükleniyor...</Text>
+              <Text className="text-sm" style={{ color: colors.text2 }}>Yükleniyor...</Text>
             </View>
           ) : sonIslemler.length === 0 ? (
-            <View className="items-center py-8 bg-white rounded-2xl border border-[#e7eefe]">
-              <MaterialCommunityIcons name="receipt-text" size={36} color="#c1c6d7" />
-              <Text className="text-[#727786] text-sm mt-2">Henüz işlem yok</Text>
-              <Text className="text-[#c1c6d7] text-xs mt-1">Gelir veya gider ekleyin</Text>
+            <View className="items-center py-8 rounded-2xl" style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+              <MaterialCommunityIcons name="receipt-text" size={36} color={colors.text3} />
+              <Text className="text-sm mt-2" style={{ color: colors.text2 }}>Henüz işlem yok</Text>
+              <Text className="text-xs mt-1" style={{ color: colors.text3 }}>Gelir veya gider ekleyin</Text>
             </View>
           ) : (
             sonIslemler.map((islem) => {
@@ -171,15 +173,16 @@ export const GelirGiderKarti: React.FC<{
               return (
                 <View
                   key={islem.id}
-                  className="flex-row items-center justify-between bg-white rounded-xl px-4 py-3 mb-2 border border-[#e7eefe]"
+                  className="flex-row items-center justify-between rounded-xl px-4 py-3 mb-2"
+                  style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
                 >
                   <View className="flex-row items-center gap-3 flex-1">
                     <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: kat.bg }}>
                       <MaterialCommunityIcons name={(kat.icon || varsayilanIkon) as any} size={18} color={kat.text} />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-[#151c27] text-sm font-semibold" numberOfLines={1}>{islem.category}</Text>
-                      <Text className="text-[#727786] text-xs">{islem.note || islem.date}</Text>
+                      <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>{islem.category}</Text>
+                      <Text className="text-xs" style={{ color: colors.text2 }}>{islem.note || islem.date}</Text>
                     </View>
                   </View>
                   <Text className="font-bold text-sm" style={{ color: renk.text }}>

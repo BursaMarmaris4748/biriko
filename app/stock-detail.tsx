@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Polyline } from 'react-native-svg';
+import { useTheme } from '@/contexts/theme-context';
 import StockIcon from '@/components/stock-icon';
 import { fetchStockHistory, fetchStockPrices, loadStocks, saveStocks, StockHolding } from '@/services/market-data';
 
@@ -22,9 +23,9 @@ const timeframes = [
 
 type TimeframeKey = typeof timeframes[number]['key'];
 
-function Chart({ data, color }: { data: number[]; color: string }) {
+function Chart({ data, color, textColor }: { data: number[]; color: string; textColor?: string }) {
   if (data.length < 2) {
-    return <View className="items-center justify-center" style={{ width: CHART_W, height: CHART_H }}><Text className="text-[#9ca3af] text-sm">Grafik verisi yükleniyor...</Text></View>;
+    return <View className="items-center justify-center" style={{ width: CHART_W, height: CHART_H }}><Text style={{ color: textColor || '#9ca3af' }} className="text-sm">Grafik verisi yükleniyor...</Text></View>;
   }
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -59,6 +60,7 @@ export default function StockDetailScreen() {
   const [timeframe, setTimeframe] = useState<TimeframeKey>('1mo');
   const [fetchingHistory, setFetchingHistory] = useState(false);
 
+  const { colors } = useTheme();
   const [showAdd, setShowAdd] = useState(false);
   const [shares, setShares] = useState('');
   const [costPerShare, setCostPerShare] = useState('');
@@ -127,11 +129,11 @@ export default function StockDetailScreen() {
   const exColor = exchange === 'BIST' ? '#E11D48' : '#2563EB';
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-3 pb-3" style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f2f5' }}>
+      <View className="flex-row items-center px-5 pt-3 pb-3" style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <TouchableOpacity onPress={() => router.back()} className="mr-3">
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#151c27" />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <StockIcon symbol={symbol} name={name} size={44} />
         <View className="flex-1 ml-3">
@@ -164,7 +166,7 @@ export default function StockDetailScreen() {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
 
         {/* Grafik */}
-        <View className="mx-5 bg-[#f8f9fc] rounded-2xl p-4 mb-3 border border-[#e8ecf4]">
+        <View className="mx-5 rounded-2xl p-4 mb-3 border" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}>
           {/* Zaman Dilimleri */}
           <View className="flex-row gap-2 mb-3">
             {timeframes.map(tf => (
@@ -179,7 +181,7 @@ export default function StockDetailScreen() {
           {fetchingHistory ? (
             <View className="items-center justify-center" style={{ height: CHART_H }}><ActivityIndicator size="small" color={exColor} /></View>
           ) : (
-            <Chart data={history} color={up ? '#10B981' : '#BA1A1A'} />
+            <Chart data={history} color={up ? '#10B981' : '#BA1A1A'} textColor={colors.text3} />
           )}
           {/* High / Low */}
           {(high > 0 || low > 0) && (
@@ -203,15 +205,15 @@ export default function StockDetailScreen() {
 
         {/* Ekleme Formu */}
         {showAdd && (
-          <View className="mx-5 bg-white rounded-2xl p-5 border border-[#e8ecf4] mb-3" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 }}>
+          <View className="mx-5 rounded-2xl p-5 border mb-3" style={{ backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 }}>
             {price > 0 && (
-              <View className="bg-[#f0f7ff] rounded-xl px-4 py-2.5 mb-3 flex-row items-center justify-between">
-                <Text className="text-[#0055FF] text-xs font-medium">Güncel Fiyat</Text>
-                <Text className="text-[#0055FF] font-bold">{price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</Text>
+              <View className="rounded-xl px-4 py-2.5 mb-3 flex-row items-center justify-between" style={{ backgroundColor: colors.accentLight }}>
+                <Text style={{ color: colors.accent }} className="text-xs font-medium">Güncel Fiyat</Text>
+                <Text style={{ color: colors.accent }} className="font-bold">{price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</Text>
               </View>
             )}
-            <TextInput className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-3 border border-[#e8ecf4]" placeholder="Adet" placeholderTextColor="#b0b7c3" keyboardType="decimal-pad" value={shares} onChangeText={setShares} />
-            <TextInput className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-4 border border-[#e8ecf4]" placeholder={`Birim Maliyet (${currency === 'TRY' ? 'TL' : currency})`} placeholderTextColor="#b0b7c3" keyboardType="decimal-pad" value={costPerShare} onChangeText={setCostPerShare} />
+            <TextInput style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }} className="rounded-xl px-4 py-3 text-base mb-3 border" placeholder="Adet" placeholderTextColor={colors.text3} keyboardType="decimal-pad" value={shares} onChangeText={setShares} />
+            <TextInput style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }} className="rounded-xl px-4 py-3 text-base mb-4 border" placeholder={`Birim Maliyet (${currency === 'TRY' ? 'TL' : currency})`} placeholderTextColor={colors.text3} keyboardType="decimal-pad" value={costPerShare} onChangeText={setCostPerShare} />
             <TouchableOpacity onPress={handleAddStock} className="rounded-2xl py-3.5 items-center" style={{ backgroundColor: exColor }}>
               <Text className="text-white font-bold text-base">Portföye Ekle</Text>
             </TouchableOpacity>
@@ -219,7 +221,7 @@ export default function StockDetailScreen() {
         )}
 
         {/* Yardım */}
-        <Text className="text-center text-[#c1c6d7] text-xs mt-2">30 sn'de bir güncellenir • Hisseye uzun basarak portföyden silebilirsin</Text>
+        <Text style={{ color: colors.text3, textAlign: 'center' }} className="text-xs mt-2">30 sn'de bir güncellenir • Hisseye uzun basarak portföyden silebilirsin</Text>
       </ScrollView>
     </SafeAreaView>
   );

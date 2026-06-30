@@ -2,11 +2,12 @@ import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
 import { Platform, TouchableOpacity, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
+import { useTheme } from '@/contexts/theme-context';
 import { HapticTab } from '@/components/haptic-tab';
 
 export default function TabLayout() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
 
   return (
     <Tabs
@@ -14,7 +15,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: colors.tabBar,
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0.1,
@@ -25,8 +26,8 @@ export default function TabLayout() {
           paddingBottom: Platform.OS === 'ios' ? 28 : 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: '#0058bc',
-        tabBarInactiveTintColor: '#727786',
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.text3,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '600',
@@ -62,9 +63,10 @@ export default function TabLayout() {
               className="flex-1 items-center justify-center"
               style={{ marginTop: Platform.OS === 'ios' ? -20 : -16 }}
             >
-              <View className="w-14 h-14 rounded-full bg-[#0058bc] items-center justify-center shadow-lg"
+              <View className="w-14 h-14 rounded-full items-center justify-center shadow-lg"
                 style={{
-                  shadowColor: '#0058bc',
+                  backgroundColor: colors.accent,
+                  shadowColor: colors.accent,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 8,

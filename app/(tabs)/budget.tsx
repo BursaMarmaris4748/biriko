@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useTheme } from '@/contexts/theme-context';
 import Sparkline from '@/components/sparkline';
 import StockIcon from '@/components/stock-icon';
 import {
@@ -39,6 +40,7 @@ const stockExchangeColors: Record<string, string> = { BIST: '#E11D48', US: '#256
 
 export default function InvestmentScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [prices, setPrices] = useState<MarketPrice[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -216,10 +218,10 @@ export default function InvestmentScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f2f5f9]" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View className="px-5 pt-3 pb-2">
-          <Text className="text-[#151c27] text-2xl font-bold">Yatırımlar</Text>
+          <Text style={{ color: colors.text }} className="text-2xl font-bold">Yatırımlar</Text>
         </View>
 
         {/* Canlı Fiyatlar */}
@@ -228,12 +230,12 @@ export default function InvestmentScreen() {
             const up = p.change >= 0;
             const curColor = currencyColors[p.symbol] || '#0058bc';
             return (
-              <View key={p.symbol} className="bg-white rounded-2xl px-4 pt-3 pb-2 border border-[#e8ecf4] min-w-[155px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}>
+              <View key={p.symbol} style={{ backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }} className="rounded-2xl px-4 pt-3 pb-2 border min-w-[155px]">
                 <View className="flex-row items-center gap-2 mb-1">
                   <MaterialCommunityIcons name={p.icon as any} size={18} color={curColor} />
                   <Text className="text-xs font-semibold" style={{ color: curColor }}>{p.symbol}</Text>
                 </View>
-                <Text className="text-[#151c27] font-bold text-lg">{invFormatted(p.sell)} ₺</Text>
+                <Text style={{ color: colors.text }} className="font-bold text-lg">{invFormatted(p.sell)} ₺</Text>
                 <View className="flex-row items-center gap-1 mt-0.5">
                   <MaterialCommunityIcons name={up ? 'trending-up' : 'trending-down'} size={14} color={up ? '#10b981' : '#ba1a1a'} />
                   <Text className={`text-sm font-bold ${up ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>{up ? '+' : ''}{p.change.toFixed(2)}%</Text>
@@ -266,7 +268,7 @@ export default function InvestmentScreen() {
                   const h = stocks.find(s => s.symbol === sp.symbol && s.exchange === 'BIST');
                   return (
                     <TouchableOpacity key={`bist-${h?.id || sp.symbol}`} onPress={() => router.push({ pathname: '/stock-detail', params: { symbol: sp.symbol, exchange: 'BIST' } })} onLongPress={() => h && handleStockDelete(h.id)} activeOpacity={0.85}
-                      className="bg-white rounded-2xl px-4 pt-3 pb-3 border border-[#e8ecf4] min-w-[165px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
+                      className="rounded-2xl px-4 pt-3 pb-3 border min-w-[165px]" style={{ backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
                     >
                       <View className="flex-row items-center gap-2 mb-2">
                         <StockIcon symbol={sp.symbol} name={sp.name} size={28} />
@@ -274,7 +276,7 @@ export default function InvestmentScreen() {
                       </View>
                       {sp.price > 0 ? (
                         <>
-                          <Text className="text-[#151c27] font-bold text-base mb-1">{sp.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</Text>
+                          <Text style={{ color: colors.text }} className="font-bold text-base mb-1">{sp.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</Text>
                           <View className="flex-row items-center gap-1">
                             <MaterialCommunityIcons name={sp.changePercent >= 0 ? 'trending-up' : 'trending-down'} size={13} color={sp.changePercent >= 0 ? '#10b981' : '#ba1a1a'} />
                             <Text className={`text-xs font-bold ${sp.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>{sp.changePercent >= 0 ? '+' : ''}{sp.changePercent.toFixed(2)}%</Text>
@@ -311,7 +313,7 @@ export default function InvestmentScreen() {
                   const h = stocks.find(s => s.symbol === sp.symbol && s.exchange === 'US');
                   return (
                     <TouchableOpacity key={`us-${h?.id || sp.symbol}`} onPress={() => router.push({ pathname: '/stock-detail', params: { symbol: sp.symbol, exchange: 'US' } })} onLongPress={() => h && handleStockDelete(h.id)} activeOpacity={0.85}
-                      className="bg-white rounded-2xl px-4 pt-3 pb-3 border border-[#e8ecf4] min-w-[165px]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
+                      className="rounded-2xl px-4 pt-3 pb-3 border min-w-[165px]" style={{ backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
                     >
                       <View className="flex-row items-center gap-2 mb-2">
                         <StockIcon symbol={sp.symbol} name={sp.name} size={28} />
@@ -319,7 +321,7 @@ export default function InvestmentScreen() {
                       </View>
                       {sp.price > 0 ? (
                         <>
-                          <Text className="text-[#151c27] font-bold text-base mb-1">{sp.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {sp.currency}</Text>
+                          <Text style={{ color: colors.text }} className="font-bold text-base mb-1">{sp.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {sp.currency}</Text>
                           <View className="flex-row items-center gap-1">
                             <MaterialCommunityIcons name={sp.changePercent >= 0 ? 'trending-up' : 'trending-down'} size={13} color={sp.changePercent >= 0 ? '#10b981' : '#ba1a1a'} />
                             <Text className={`text-xs font-bold ${sp.changePercent >= 0 ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>{sp.changePercent >= 0 ? '+' : ''}{sp.changePercent.toFixed(2)}%</Text>
@@ -338,21 +340,21 @@ export default function InvestmentScreen() {
         {/* Hisse Eklenmemişse Keşfet Butonu */}
         {stocks.length === 0 && (
           <View className="mx-5 mb-4">
-            <Text className="text-[#727786] text-xs font-semibold mb-2 ml-1">HİSSE SENETLERİ</Text>
+            <Text style={{ color: colors.text2 }} className="text-xs font-semibold mb-2 ml-1">HİSSE SENETLERİ</Text>
             <View className="flex-row gap-3">
               <TouchableOpacity onPress={() => router.push('/stock-list?exchange=BIST')}
-                className="flex-1 bg-white rounded-2xl p-4 border border-[#e8ecf4] items-center" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
+                className="flex-1 rounded-2xl p-4 border items-center" style={{ backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
               >
                 <MaterialCommunityIcons name="chart-line" size={32} color="#E11D48" />
-                <Text className="text-[#151c27] font-bold text-sm mt-2">Borsa İstanbul</Text>
-                <Text className="text-[#9ca3af] text-[11px] mt-1">Hisseleri keşfet</Text>
+                <Text style={{ color: colors.text }} className="font-bold text-sm mt-2">Borsa İstanbul</Text>
+                <Text style={{ color: colors.text3 }} className="text-[11px] mt-1">Hisseleri keşfet</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push('/stock-list?exchange=US')}
-                className="flex-1 bg-white rounded-2xl p-4 border border-[#e8ecf4] items-center" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
+                className="flex-1 rounded-2xl p-4 border items-center" style={{ backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}
               >
                 <MaterialCommunityIcons name="chart-line" size={32} color="#2563EB" />
-                <Text className="text-[#151c27] font-bold text-sm mt-2">ABD Borsaları</Text>
-                <Text className="text-[#9ca3af] text-[11px] mt-1">NASDAQ, NYSE</Text>
+                <Text style={{ color: colors.text }} className="font-bold text-sm mt-2">ABD Borsaları</Text>
+                <Text style={{ color: colors.text3 }} className="text-[11px] mt-1">NASDAQ, NYSE</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -423,9 +425,9 @@ export default function InvestmentScreen() {
         })}
 
         {!loading && investments.length === 0 && (
-          <View className="items-center py-10 mx-5 bg-white rounded-2xl border border-[#e8ecf4]">
-            <MaterialCommunityIcons name="chart-timeline-variant" size={48} color="#c1c6d7" />
-            <Text className="text-[#9ca3af] text-sm mt-3">Henüz döviz/kripto eklemedin</Text>
+          <View className="items-center py-10 mx-5 rounded-2xl border" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+            <MaterialCommunityIcons name="chart-timeline-variant" size={48} color={colors.text3} />
+            <Text style={{ color: colors.text3 }} className="text-sm mt-3">Henüz döviz/kripto eklemedin</Text>
           </View>
         )}
 
@@ -454,33 +456,34 @@ export default function InvestmentScreen() {
           </View>
         )}
 
-        <Text className="text-center text-[#c1c6d7] text-xs mt-4">30 sn'de bir güncellenir</Text>
+        <Text style={{ color: colors.text3, textAlign: 'center' }} className="text-xs mt-4">30 sn'de bir güncellenir</Text>
       </ScrollView>
 
       {/* Yatırım Ekle Modal */}
       <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
         <Pressable className="flex-1 justify-end" onPress={() => setShowAddModal(false)}>
-          <Pressable onPress={() => {}} className="bg-white rounded-t-3xl p-5 border-t border-[#e8ecf4]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 10 }}>
-            <Text className="text-[#151c27] font-bold text-lg mb-4">Döviz / Kripto Ekle</Text>
-            <Text className="text-[#727786] text-xs font-semibold mb-2">Tür</Text>
+          <Pressable onPress={() => {}} style={{ backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 10 }} className="rounded-t-3xl p-5 border-t">
+            <Text style={{ color: colors.text }} className="font-bold text-lg mb-4">Döviz / Kripto Ekle</Text>
+            <Text style={{ color: colors.text2 }} className="text-xs font-semibold mb-2">Tür</Text>
             <View className="flex-row flex-wrap gap-2 mb-4">
               {investmentTypes.map(t => (
                 <TouchableOpacity key={t.type} onPress={() => { setNewType(t.type); costManuallyEdited.current = false; updateCostFromAmount(newAmount, t.type); }}
-                  className={`px-4 py-2 rounded-xl border ${newType === t.type ? 'bg-[#0055FF] border-[#0055FF]' : 'bg-white border-[#e8ecf4]'}`}
+                  className={`px-4 py-2 rounded-xl border ${newType === t.type ? 'border-[#0055FF]' : 'border-[#e8ecf4]'}`}
+                  style={{ backgroundColor: newType === t.type ? colors.accent : colors.card, borderColor: newType === t.type ? colors.accent : colors.border }}
                 >
-                  <Text className={`text-sm font-medium ${newType === t.type ? 'text-white' : 'text-[#151c27]'}`}>{t.label}</Text>
+                  <Text className={`text-sm font-medium ${newType === t.type ? 'text-white' : ''}`} style={{ color: newType === t.type ? '#fff' : colors.text }}>{t.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
             {currentUnitPrice > 0 && (
-              <View className="bg-[#f0f7ff] rounded-xl px-4 py-2 mb-3 flex-row items-center justify-between">
-                <Text className="text-[#0055FF] text-xs font-medium">Güncel Birim Fiyat</Text>
-                <Text className="text-[#0055FF] font-bold">{currentUnitPrice.toFixed(2)} ₺</Text>
+              <View style={{ backgroundColor: colors.accentLight }} className="rounded-xl px-4 py-2 mb-3 flex-row items-center justify-between">
+                <Text style={{ color: colors.accent }} className="text-xs font-medium">Güncel Birim Fiyat</Text>
+                <Text style={{ color: colors.accent }} className="font-bold">{currentUnitPrice.toFixed(2)} ₺</Text>
               </View>
             )}
-            <TextInput className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-3 border border-[#e8ecf4]" placeholder="Miktar (ör: 10 gram, 100 adet)" placeholderTextColor="#b0b7c3" keyboardType="decimal-pad" value={newAmount} onChangeText={(t) => { setNewAmount(t); updateCostFromAmount(t, newType); }} />
-            <TextInput className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-5 border border-[#e8ecf4]" placeholder="Toplam Maliyet (TL) — otomatik hesaplanır" placeholderTextColor="#b0b7c3" keyboardType="decimal-pad" value={newCost} onChangeText={(t) => { costManuallyEdited.current = true; setNewCost(t); }} />
-            <TouchableOpacity onPress={handleAdd} className="bg-[#0055FF] rounded-2xl py-3.5 items-center"><Text className="text-white font-bold text-base">Ekle</Text></TouchableOpacity>
+            <TextInput style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }} className="rounded-xl px-4 py-3 text-base mb-3 border" placeholder="Miktar (ör: 10 gram, 100 adet)" placeholderTextColor={colors.text3} keyboardType="decimal-pad" value={newAmount} onChangeText={(t) => { setNewAmount(t); updateCostFromAmount(t, newType); }} />
+            <TextInput style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }} className="rounded-xl px-4 py-3 text-base mb-5 border" placeholder="Toplam Maliyet (TL) — otomatik hesaplanır" placeholderTextColor={colors.text3} keyboardType="decimal-pad" value={newCost} onChangeText={(t) => { costManuallyEdited.current = true; setNewCost(t); }} />
+            <TouchableOpacity onPress={handleAdd} style={{ backgroundColor: colors.accent }} className="rounded-2xl py-3.5 items-center"><Text className="text-white font-bold text-base">Ekle</Text></TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -488,20 +491,22 @@ export default function InvestmentScreen() {
       {/* Hisse Ekle Modal */}
       <Modal visible={showStockAddModal} transparent animationType="slide" onRequestClose={() => setShowStockAddModal(false)}>
         <Pressable className="flex-1 justify-end" onPress={() => setShowStockAddModal(false)}>
-          <Pressable onPress={() => {}} className="bg-white rounded-t-3xl p-5 border-t border-[#e8ecf4]" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 10 }}>
-            <Text className="text-[#151c27] font-bold text-lg mb-4">Hisse Senedi Ekle</Text>
+          <Pressable onPress={() => {}} style={{ backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 10 }} className="rounded-t-3xl p-5 border-t">
+            <Text style={{ color: colors.text }} className="font-bold text-lg mb-4">Hisse Senedi Ekle</Text>
             <View className="flex-row gap-3 mb-4">
               <TouchableOpacity onPress={() => setNewExchange('BIST')}
-                className={`flex-1 py-3 rounded-xl items-center border ${newExchange === 'BIST' ? 'bg-[#E11D48] border-[#E11D48]' : 'bg-white border-[#e8ecf4]'}`}
-              ><Text className={`font-bold text-sm ${newExchange === 'BIST' ? 'text-white' : 'text-[#151c27]'}`}>Borsa İstanbul</Text></TouchableOpacity>
+                className="flex-1 py-3 rounded-xl items-center border"
+                style={{ backgroundColor: newExchange === 'BIST' ? '#E11D48' : colors.card, borderColor: newExchange === 'BIST' ? '#E11D48' : colors.border }}
+              ><Text className="font-bold text-sm" style={{ color: newExchange === 'BIST' ? '#fff' : colors.text }}>Borsa İstanbul</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => setNewExchange('US')}
-                className={`flex-1 py-3 rounded-xl items-center border ${newExchange === 'US' ? 'bg-[#2563EB] border-[#2563EB]' : 'bg-white border-[#e8ecf4]'}`}
-              ><Text className={`font-bold text-sm ${newExchange === 'US' ? 'text-white' : 'text-[#151c27]'}`}>ABD (NASDAQ)</Text></TouchableOpacity>
+                className="flex-1 py-3 rounded-xl items-center border"
+                style={{ backgroundColor: newExchange === 'US' ? '#2563EB' : colors.card, borderColor: newExchange === 'US' ? '#2563EB' : colors.border }}
+              ><Text className="font-bold text-sm" style={{ color: newExchange === 'US' ? '#fff' : colors.text }}>ABD (NASDAQ)</Text></TouchableOpacity>
             </View>
-            <Text className="text-[#727786] text-xs font-semibold mb-2">Sembol</Text>
-            <TextInput className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-3 border border-[#e8ecf4]" placeholder={newExchange === 'BIST' ? 'Örn: THYAO, GARAN, ASELS' : 'Örn: AAPL, MSFT, NVDA'} placeholderTextColor="#b0b7c3" autoCapitalize="characters" value={newSymbol} onChangeText={setNewSymbol} />
-            <TextInput className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-3 border border-[#e8ecf4]" placeholder="Adet" placeholderTextColor="#b0b7c3" keyboardType="decimal-pad" value={newShares} onChangeText={setNewShares} />
-            <TextInput className="bg-[#f8f9fc] rounded-xl px-4 py-3 text-base text-[#151c27] mb-5 border border-[#e8ecf4]" placeholder="Birim Maliyet (TL)" placeholderTextColor="#b0b7c3" keyboardType="decimal-pad" value={newCostPerShare} onChangeText={setNewCostPerShare} />
+            <Text style={{ color: colors.text2 }} className="text-xs font-semibold mb-2">Sembol</Text>
+            <TextInput style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }} className="rounded-xl px-4 py-3 text-base mb-3 border" placeholder={newExchange === 'BIST' ? 'Örn: THYAO, GARAN, ASELS' : 'Örn: AAPL, MSFT, NVDA'} placeholderTextColor={colors.text3} autoCapitalize="characters" value={newSymbol} onChangeText={setNewSymbol} />
+            <TextInput style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }} className="rounded-xl px-4 py-3 text-base mb-3 border" placeholder="Adet" placeholderTextColor={colors.text3} keyboardType="decimal-pad" value={newShares} onChangeText={setNewShares} />
+            <TextInput style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }} className="rounded-xl px-4 py-3 text-base mb-5 border" placeholder="Birim Maliyet (TL)" placeholderTextColor={colors.text3} keyboardType="decimal-pad" value={newCostPerShare} onChangeText={setNewCostPerShare} />
             <TouchableOpacity onPress={handleStockAdd} className="rounded-2xl py-3.5 items-center" style={{ backgroundColor: newExchange === 'BIST' ? '#E11D48' : '#2563EB' }}>
               <Text className="text-white font-bold text-base">Hisse Ekle</Text>
             </TouchableOpacity>
