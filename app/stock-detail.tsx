@@ -73,6 +73,7 @@ export default function StockDetailScreen() {
       setCurrency(sp[0].currency || 'TRY');
       setName(sp[0].name || symbol);
     }
+    setLoading(false);
   };
 
   const loadHistory = async (tf: TimeframeKey) => {
@@ -128,42 +129,39 @@ export default function StockDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-3 pb-2">
+      <View className="flex-row items-center px-5 pt-3 pb-3" style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f2f5' }}>
         <TouchableOpacity onPress={() => router.back()} className="mr-3">
           <MaterialCommunityIcons name="arrow-left" size={24} color="#151c27" />
         </TouchableOpacity>
-        <StockIcon symbol={symbol} name={name} size={40} />
+        <StockIcon symbol={symbol} name={name} size={44} />
         <View className="flex-1 ml-3">
-          <Text className="text-[#151c27] text-xl font-bold">{symbol}</Text>
+          <View className="flex-row items-center gap-2">
+            <Text className="text-[#151c27] text-xl font-bold">{symbol}</Text>
+            <View className="rounded-lg px-2 py-0.5" style={{ backgroundColor: exColor + '20' }}>
+              <Text className="font-bold text-xs" style={{ color: exColor }}>{exchange === 'BIST' ? 'BIST' : 'NASDAQ'}</Text>
+            </View>
+          </View>
           <Text className="text-[#727786] text-xs">{name}</Text>
-        </View>
-        <View className="bg-gray-100 rounded-lg px-2.5 py-1.5">
-          <Text className="font-bold text-xs" style={{ color: exColor }}>{exchange === 'BIST' ? 'BIST' : 'NASDAQ'}</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={exColor} style={{ marginTop: 4, alignSelf: 'flex-start' }} />
+          ) : (
+            <View className="flex-row items-center gap-3 mt-1">
+              <Text className="text-[#151c27] text-2xl font-bold">
+                {price > 0 ? `${price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+              </Text>
+              {price > 0 && (
+                <View className={`flex-row items-center gap-1 px-2.5 py-0.5 rounded-full ${up ? 'bg-green-100' : 'bg-red-100'}`}>
+                  <MaterialCommunityIcons name={up ? 'trending-up' : 'trending-down'} size={14} color={up ? '#10b981' : '#ba1a1a'} />
+                  <Text className={`font-bold text-sm ${up ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>{up ? '+' : ''}{changePercent.toFixed(2)}%</Text>
+                </View>
+              )}
+              <Text className="text-[#9ca3af] text-xs">{currency}</Text>
+            </View>
+          )}
         </View>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        {/* Fiyat */}
-        <View className="px-5 pt-2 pb-4">
-          {loading ? (
-            <ActivityIndicator size="small" color={exColor} />
-          ) : (
-            <>
-              <Text className="text-[#151c27] text-4xl font-bold">
-                {price > 0 ? `${price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}` : 'Fiyat alınamadı'}
-              </Text>
-              {price > 0 && (
-                <View className="flex-row items-center gap-2 mt-1">
-                  <View className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full ${up ? 'bg-green-100' : 'bg-red-100'}`}>
-                    <MaterialCommunityIcons name={up ? 'trending-up' : 'trending-down'} size={16} color={up ? '#10b981' : '#ba1a1a'} />
-                    <Text className={`font-bold ${up ? 'text-[#10b981]' : 'text-[#ba1a1a]'}`}>{up ? '+' : ''}{changePercent.toFixed(2)}%</Text>
-                  </View>
-                  <Text className="text-[#727786] text-xs">Günlük değişim</Text>
-                </View>
-              )}
-            </>
-          )}
-        </View>
 
         {/* Grafik */}
         <View className="mx-5 bg-[#f8f9fc] rounded-2xl p-4 mb-3 border border-[#e8ecf4]">
