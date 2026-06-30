@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, Image } from 'react-native';
 
 const STOCK_DOMAINS: Record<string, string> = {
@@ -25,6 +25,8 @@ const STOCK_DOMAINS: Record<string, string> = {
   VZ: 'verizon.com', T: 'att.com', BA: 'boeing.com',
 };
 
+const US_STOCKS = new Set(['AAPL','MSFT','GOOGL','AMZN','NVDA','META','TSLA','JPM','V','SPY','QQQ','AMD','NFLX','DIS','KO','PEP','WMT','JNJ','PG','BAC','MA','UNH','HD','INTC','CSCO','PFE','NKE','VZ','T','BA']);
+
 const iconColors = [
   '#E11D48', '#2563EB', '#10B981', '#F59E0B', '#8B5CF6',
   '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16',
@@ -38,17 +40,33 @@ function hashColor(symbol: string): string {
   return iconColors[Math.abs(hash) % iconColors.length];
 }
 
+function logoUrls(symbol: string, domain?: string): string[] {
+  const s = symbol.toUpperCase();
+  const urls: string[] = [];
+  if (US_STOCKS.has(s)) urls.push(`https://storage.googleapis.com/iex/api/logos/${s}.png`);
+  if (domain) urls.push(`https://www.google.com/s2/favicons?domain=${domain}&sz=64`);
+  return urls;
+}
+
 export default function StockIcon({ symbol, name, size = 36 }: { symbol: string; name?: string; size?: number }) {
-  const [failed, setFailed] = useState(false);
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
   const domain = STOCK_DOMAINS[symbol.toUpperCase()];
-  const logoUrl = domain ? `https://logo.clearbit.com/${domain}?size=${size * 2}` : null;
+  const urls = useMemo(() => logoUrls(symbol, domain), [symbol, domain]);
+
+  const currentUrl = urls.find(u => !failedUrls.has(u));
+
   const color = hashColor(symbol);
   const fontSize = size * 0.42;
 
-  if (logoUrl && !failed) {
+  if (currentUrl) {
     return (
       <View style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden', backgroundColor: '#f0f2f5' }}>
-        <Image source={{ uri: logoUrl }} style={{ width: size, height: size }} onError={() => setFailed(true)} />
+        <Image
+          source={{ uri: currentUrl }}
+          style={{ width: size, height: size }}
+          resizeMode="contain"
+          onError={() => setFailedUrls(prev => new Set(prev).add(currentUrl))}
+        />
       </View>
     );
   }
