@@ -89,6 +89,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="groups"
+        options={{
+          title: 'Gruplar',
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="forum" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Ayarlar',
