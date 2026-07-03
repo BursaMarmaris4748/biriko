@@ -1,13 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Group, GroupMember } from '@/lib/types';
-
-function generateInviteCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
+import { Group } from '@/lib/types';
 
 export function useGroups() {
   const [groups, setGroups] = useState<(Group & { unread?: number })[]>([]);
@@ -49,24 +42,9 @@ export function useGroups() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Giriş yapmalısın');
 
-    // Benzersiz davet kodu oluştur
-    let inviteCode: string;
-    let retries = 0;
-    while (true) {
-      inviteCode = generateInviteCode();
-      const { data: existing } = await supabase
-        .from('groups')
-        .select('id')
-        .eq('invite_code', inviteCode)
-        .maybeSingle();
-      if (!existing) break;
-      retries++;
-      if (retries > 10) throw new Error('Davet kodu oluşturulamadı');
-    }
-
     const { data: group, error: gErr } = await supabase
       .from('groups')
-      .insert({ name, created_by: user.id, invite_code: inviteCode })
+      .insert({ name, created_by: user.id })
       .select()
       .single();
     if (gErr || !group) throw new Error(gErr?.message || 'Grup oluşturulamadı');
@@ -92,7 +70,6 @@ export function useGroups() {
       .maybeSingle();
     if (gErr || !group) throw new Error('Geçersiz davet kodu');
 
-    // Zaten üye mi?
     const { data: existing } = await supabase
       .from('group_members')
       .select('id')

@@ -1,184 +1,166 @@
 -- ============================================================
 -- Biriko Grup Mesajlaşma Şeması
--- Bu SQL'i Supabase SQL Editor'da çalıştır.
+-- Önce bunu, sonra aşağıdaki ek SQL'leri çalıştır.
 -- ============================================================
 
--- 1. Gruplar
-CREATE TABLE groups (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT DEFAULT '',
-  created_by UUID REFERENCES auth.users(id) NOT NULL,
-  avatar_url TEXT,
-  invite_code TEXT UNIQUE NOT NULL DEFAULT upper(substr(md5(random()::text), 1, 6)),
-  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+-- 1) Gruplar (invite_code ile)
+create table if not exists groups (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  type text default 'friends',
+  created_by uuid references auth.users(id),
+  avatar_url text,
+  invite_code text unique default upper(substring(gen_random_uuid()::text, 1, 8)),
+  created_at timestamp default now()
 );
 
-CREATE INDEX idx_groups_invite_code ON groups(invite_code);
-
--- 2. Grup Üyeleri
-CREATE TABLE group_members (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  group_id UUID REFERENCES groups(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES auth.users(id) NOT NULL,
-  role TEXT DEFAULT 'member' CHECK (role IN ('admin', 'member')),
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'left')),
-  joined_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-  UNIQUE(group_id, user_id)
+-- 2) Grup üyeleri
+create table if not exists group_members (
+  id uuid default gen_random_uuid() primary key,
+  group_id uuid references groups(id) on delete cascade,
+  user_id uuid references auth.users(id),
+  role text default 'member',
+  status text default 'active',
+  joined_at timestamp default now()
 );
 
--- 3. Mesajlar
-CREATE TABLE messages (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  group_id UUID REFERENCES groups(id) ON DELETE CASCADE NOT NULL,
-  sender_id UUID REFERENCES auth.users(id) NOT NULL,
-  content TEXT NOT NULL,
-  type TEXT DEFAULT 'text' CHECK (type IN ('text', 'image', 'transaction')),
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+-- 3) Mesajlar
+create table if not exists messages (
+  id uuid default gen_random_uuid() primary key,
+  group_id uuid references groups(id) on delete cascade,
+  sender_id uuid references auth.users(id),
+  content text not null,
+  type text default 'text',
+  metadata jsonb,
+  created_at timestamp default now()
 );
 
--- 4. Okundu Bilgisi
-CREATE TABLE message_reads (
-  message_id UUID REFERENCES messages(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES auth.users(id) NOT NULL,
-  read_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-  PRIMARY KEY (message_id, user_id)
+-- 4) Okundu bilgisi
+create table if not exists message_reads (
+  message_id uuid references messages(id) on delete cascade,
+  user_id uuid references auth.users(id),
+  read_at timestamp default now(),
+  primary key (message_id, user_id)
 );
 
--- 5. Push Tokenlar
-CREATE TABLE push_tokens (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) NOT NULL UNIQUE,
-  token TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+-- 5) Profiller (kullanıcı adı, avatar için)
+create table if not exists profiles (
+  id uuid references auth.users(id) primary key,
+  full_name text,
+  avatar_url text,
+  email text,
+  created_at timestamp default now()
 );
+
+-- Yeni kullanıcı kaydolunca otomatik profil oluştur
+create or replace function handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, full_name, email)
+  values (new.id, new.raw_user_meta_data->>'full_name', new.email);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function handle_new_user();
+
+-- 6) Okunmamış mesaj sayısı fonksiyonu
+create or replace function get_unread_count(p_user_id uuid, p_group_id uuid)
+returns bigint
+language sql
+stable
+as $$
+  select count(*)
+  from messages m
+  where m.group_id = p_group_id
+    and m.sender_id != p_user_id
+    and m.created_at > coalesce(
+      (select max(mr.read_at) from message_reads mr where mr.message_id = m.id and mr.user_id = p_user_id),
+      '1970-01-01'::timestamp
+    );
+$$;
 
 -- ============================================================
 -- INDEX'ler
 -- ============================================================
-CREATE INDEX idx_messages_group_id ON messages(group_id);
-CREATE INDEX idx_messages_created_at ON messages(created_at DESC);
-CREATE INDEX idx_group_members_group_id ON group_members(group_id);
-CREATE INDEX idx_group_members_user_id ON group_members(user_id);
-CREATE INDEX idx_message_reads_user_id ON message_reads(user_id);
-CREATE INDEX idx_message_reads_message_id ON message_reads(message_id);
-CREATE INDEX idx_messages_group_id_created_at ON messages(group_id, created_at DESC);
+create index if not exists idx_groups_invite_code on groups(invite_code);
+create index if not exists idx_messages_group_id on messages(group_id);
+create index if not exists idx_messages_created_at on messages(created_at desc);
+create index if not exists idx_group_members_group_id on group_members(group_id);
+create index if not exists idx_group_members_user_id on group_members(user_id);
+create index if not exists idx_message_reads_user_id on message_reads(user_id);
+create index if not exists idx_message_reads_message_id on message_reads(message_id);
+create index if not exists idx_messages_group_id_created_at on messages(group_id, created_at desc);
 
 -- ============================================================
 -- RLS (Row Level Security)
 -- ============================================================
-ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
-ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE message_reads ENABLE ROW LEVEL SECURITY;
-ALTER TABLE push_tokens ENABLE ROW LEVEL SECURITY;
+alter table groups enable row level security;
+alter table group_members enable row level security;
+alter table messages enable row level security;
+alter table message_reads enable row level security;
+alter table profiles enable row level security;
 
--- Groups: üye olanlar görebilir, oluşturan silebilir
-CREATE POLICY "Groups select for members" ON groups
-  FOR SELECT USING (
-    id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid())
-    OR created_by = auth.uid()
+-- Groups
+create policy "Grup üyeleri grubu görebilir" on groups
+  for select using (
+    id in (select group_id from group_members where user_id = auth.uid() and status = 'active')
   );
 
-CREATE POLICY "Groups insert for all" ON groups
-  FOR INSERT WITH CHECK (created_by = auth.uid());
+create policy "Davet koduyla grup görülebilir" on groups
+  for select using (true);
 
-CREATE POLICY "Groups delete for creator" ON groups
-  FOR DELETE USING (created_by = auth.uid());
+create policy "Kullanıcı grup oluşturabilir" on groups
+  for insert with check (auth.uid() = created_by);
 
--- Group Members: üyeler görebilir, admin ekleyebilir
-CREATE POLICY "Members select" ON group_members
-  FOR SELECT USING (
-    group_id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid())
+-- Group Members
+create policy "Üyeler diğer üyeleri görebilir" on group_members
+  for select using (
+    group_id in (select group_id from group_members where user_id = auth.uid() and status = 'active')
   );
 
-CREATE POLICY "Members insert" ON group_members
-  FOR INSERT WITH CHECK (
-    group_id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid() AND role = 'admin')
-    OR EXISTS (SELECT 1 FROM groups WHERE id = group_id AND created_by = auth.uid())
+create policy "Kullanıcı gruba katılabilir" on group_members
+  for insert with check (auth.uid() = user_id);
+
+-- Messages
+create policy "Grup üyeleri mesajları görebilir" on messages
+  for select using (
+    group_id in (select group_id from group_members where user_id = auth.uid() and status = 'active')
   );
 
-CREATE POLICY "Members update" ON group_members
-  FOR UPDATE USING (
-    group_id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid() AND role = 'admin')
-    OR EXISTS (SELECT 1 FROM groups WHERE id = group_id AND created_by = auth.uid())
+create policy "Grup üyeleri mesaj gönderebilir" on messages
+  for insert with check (
+    auth.uid() = sender_id and
+    group_id in (select group_id from group_members where user_id = auth.uid() and status = 'active')
   );
 
--- Messages: grup üyeleri görebilir ve gönderebilir
-CREATE POLICY "Messages select for members" ON messages
-  FOR SELECT USING (
-    group_id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid() AND status = 'active')
-  );
+create policy "Kullanıcı kendi mesajını silebilir" on messages
+  for delete using (auth.uid() = sender_id);
 
-CREATE POLICY "Messages insert for members" ON messages
-  FOR INSERT WITH CHECK (
-    sender_id = auth.uid()
-    AND group_id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid() AND status = 'active')
-  );
+-- Message Reads
+create policy "Kullanıcı okundu işaretleyebilir" on message_reads
+  for insert with check (auth.uid() = user_id);
 
-CREATE POLICY "Messages delete own" ON messages
-  FOR DELETE USING (sender_id = auth.uid());
+-- Profiles
+create policy "Profiller herkes tarafından görülebilir" on profiles
+  for select using (true);
 
--- Message Reads: üyeler görebilir ve ekleyebilir
-CREATE POLICY "Reads select for members" ON message_reads
-  FOR SELECT USING (
-    message_id IN (SELECT id FROM messages WHERE group_id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid()))
-  );
-
-CREATE POLICY "Reads insert own" ON message_reads
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-
--- Push Tokens: kullanıcı kendi token'ını yönetir
-CREATE POLICY "Tokens select own" ON push_tokens
-  FOR SELECT USING (user_id = auth.uid());
-
-CREATE POLICY "Tokens upsert own" ON push_tokens
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Tokens update own" ON push_tokens
-  FOR UPDATE USING (user_id = auth.uid());
+create policy "Kullanıcı kendi profilini güncelleyebilir" on profiles
+  for update using (auth.uid() = id);
 
 -- ============================================================
--- Realtime: mesajlar ve okundu bilgisi için yayın
+-- Realtime
 -- ============================================================
--- Supabase Dashboard > Realtime > Replication'da aşağıdaki tabloları aktif et:
--- messages, message_reads, group_members
--- Veya SQL ile:
--- ALTER PUBLICATION supabase_realtime ADD TABLE messages;
--- ALTER PUBLICATION supabase_realtime ADD TABLE message_reads;
--- ALTER PUBLICATION supabase_realtime ADD TABLE group_members;
+-- Aşağıdakileri SQL Editor'da çalıştır:
+alter publication supabase_realtime add table messages;
+alter publication supabase_realtime add table group_members;
 
 -- ============================================================
--- Storage: sohbet fotoğrafları için bucket
+-- Storage: sohbet fotoğrafları
 -- ============================================================
 -- Supabase Dashboard > Storage > Create bucket: chat-photos (public)
--- Veya SQL ile:
--- INSERT INTO storage.buckets (id, name, public) VALUES ('chat-photos', 'chat-photos', true);
--- 
--- Storage politikası:
--- CREATE POLICY "Chat photos select" ON storage.objects
---   FOR SELECT USING (bucket_id = 'chat-photos');
--- CREATE POLICY "Chat photos insert" ON storage.objects
---   FOR INSERT WITH CHECK (
---     bucket_id = 'chat-photos' AND auth.role() = 'authenticated'
---   );
-
--- ============================================================
--- Fonksiyon: okunmamış mesaj sayısı
--- ============================================================
-CREATE OR REPLACE FUNCTION get_unread_count(p_user_id UUID, p_group_id UUID)
-RETURNS BIGINT
-LANGUAGE SQL
-STABLE
-AS $$
-  SELECT COUNT(*)
-  FROM messages m
-  WHERE m.group_id = p_group_id
-    AND m.sender_id != p_user_id
-    AND m.created_at > COALESCE(
-      (SELECT MAX(mr.read_at) FROM message_reads mr WHERE mr.message_id = m.id AND mr.user_id = p_user_id),
-      '1970-01-01'::timestamptz
-    );
-$$;
+-- Veya:
+-- insert into storage.buckets (id, name, public) values ('chat-photos', 'chat-photos', true);

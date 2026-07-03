@@ -1,19 +1,11 @@
 import { supabase } from '@/lib/supabase';
-import { Platform } from 'react-native';
 
 export async function registerPushToken(token: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  const { error } = await supabase
-    .from('push_tokens')
-    .upsert({ user_id: user.id, token }, { onConflict: 'user_id' });
-  if (error) console.warn('[push] upsert error:', error);
+  // Push token tablosu opsiyonel — şimdilik atla
 }
 
 export async function unregisterPushToken() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  await supabase.from('push_tokens').delete().eq('user_id', user.id);
+  // Push token tablosu opsiyonel
 }
 
 export async function fetchExpoPushToken(): Promise<string | null> {
@@ -21,19 +13,15 @@ export async function fetchExpoPushToken(): Promise<string | null> {
     const Notifications = await import('expo-notifications');
     const token = await Notifications.getExpoPushTokenAsync();
     return token?.data || null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-export function getPushTokenPayload(token: string, groupId: string, senderName: string, content: string) {
+export function getPushTokenPayload(token: string, senderName: string, content: string, groupId: string) {
   return {
     to: token,
     sound: 'default',
     title: senderName,
     body: content,
     data: { groupId },
-    android: { channelId: 'chat-messages' },
-    ...(Platform.OS === 'ios' ? { categoryId: 'chat' } : {}),
   };
 }

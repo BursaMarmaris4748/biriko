@@ -1,9 +1,19 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Message } from '@/lib/types';
-import { Platform } from 'react-native';
 
 const PAGE_SIZE = 50;
+
+async function fetchSenders(senderIds: string[]): Promise<Record<string, any>> {
+  if (!senderIds.length) return {};
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, full_name, avatar_url, email')
+    .in('id', senderIds);
+  const map: Record<string, any> = {};
+  (data || []).forEach(p => { map[p.id] = p; });
+  return map;
+}
 
 export function useChat(groupId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -12,8 +22,26 @@ export function useChat(groupId: string) {
   const [hasMore, setHasMore] = useState(true);
   const [members, setMembers] = useState<string[]>([]);
   const currentUserId = useRef<string | null>(null);
-  const channel = useRef<any>(null);
   const oldestDate = useRef<string | null>(null);
+  const loadedSenderIds = useRef<Set<string>>(new Set());
+
+  const attachSenders = useCallback(async (msgs: any[]): Promise<Message[]> => {
+    const ids = [...new Set(msgs.map(m => m.sender_id).filter(Boolean))] as string[];
+    const newIds = ids.filter(id => !loadedSenderIds.current.has(id));
+    if (newIds.length > 0) {
+      const senderMap = await fetchSenders(newIds);
+      newIds.forEach(id => loadedSenderIds.current.add(id));
+      return msgs.map(m => ({
+        ...m,
+        sender: senderMap[m.sender_id] || {},
+        metadata: typeof m.metadata === 'string' ? JSON.parse(m.metadata) : (m.metadata || {}),
+      })) as Message[];
+    }
+    return msgs.map(m => ({
+      ...m,
+      metadata: typeof m.metadata === 'string' ? JSON.parse(m.metadata) : (m.metadata || {}),
+    })) as Message[];
+  }, []);
 
   const fetchMessages = useCallback(async (older = false) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -22,7 +50,7 @@ export function useChat(groupId: string) {
 
     let query = supabase
       .from('messages')
-      .select('*, sender:sender_id(full_name, avatar_url, email)')
+      .select('*')
       .eq('group_id', groupId)
       .order('created_at', { ascending: false });
 
@@ -35,45 +63,40 @@ export function useChat(groupId: string) {
     const { data, error } = await query;
     if (error) { console.warn('[chat] fetch error:', error); setLoading(false); return; }
 
-    const msgs = (data as any[] || []).map(m => ({
-      ...m,
-      sender: m.sender || {},
-      metadata: typeof m.metadata === 'string' ? JSON.parse(m.metadata) : (m.metadata || {}),
-    })).reverse() as Message[];
+    const raw = (data as any[] || []).reverse();
+    const withSenders = await attachSenders(raw);
 
     if (older) {
-      setMessages(prev => [...msgs, ...prev]);
+      setMessages(prev => [...withSenders, ...prev]);
     } else {
-      setMessages(msgs);
+      setMessages(withSenders);
     }
 
-    if (msgs.length < PAGE_SIZE) setHasMore(false);
-    if (msgs.length > 0) oldestDate.current = msgs[0].created_at;
+    if (raw.length < PAGE_SIZE) setHasMore(false);
+    if (raw.length > 0) oldestDate.current = raw[0].created_at;
 
     setLoading(false);
 
     // Mark as read
-    if (!older && msgs.length > 0) {
-      const unreadIds = msgs
+    if (!older && raw.length > 0) {
+      const unreadIds = raw
         .filter(m => m.sender_id !== user.id)
         .map(m => m.id);
       if (unreadIds.length > 0) {
-        await supabase.from('message_reads').upsert(
+        const { error: rErr } = await supabase.from('message_reads').upsert(
           unreadIds.map(mid => ({ message_id: mid, user_id: user.id })),
           { onConflict: 'message_id,user_id' }
-        ).maybeSingle();
+        );
+        if (rErr) console.warn('[chat] mark-read error:', rErr);
       }
     }
-  }, [groupId]);
+  }, [groupId, attachSenders]);
 
-  // Load initial
-  useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+  useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
   // Realtime subscription
   useEffect(() => {
-    const grp = supabase
+    const channel = supabase
       .channel(`chat-${groupId}`)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -82,18 +105,24 @@ export function useChat(groupId: string) {
         filter: `group_id=eq.${groupId}`,
       }, async (payload: any) => {
         const newMsg = payload.new;
-        const { data: sender } = await supabase
-          .from('users')
-          .select('full_name, avatar_url, email')
-          .eq('id', newMsg.sender_id)
-          .single();
+
+        // Fetch sender profile for new message
+        let sender = {};
+        try {
+          const { data: s } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url, email')
+            .eq('id', newMsg.sender_id)
+            .single();
+          if (s) sender = s;
+        } catch {}
 
         setMessages(prev => {
           if (prev.some(m => m.id === newMsg.id)) return prev;
           const msg: Message = {
             ...newMsg,
             metadata: typeof newMsg.metadata === 'string' ? JSON.parse(newMsg.metadata) : (newMsg.metadata || {}),
-            sender: sender || {},
+            sender,
           };
           return [...prev, msg];
         });
@@ -104,12 +133,16 @@ export function useChat(groupId: string) {
           supabase.from('message_reads').upsert(
             { message_id: newMsg.id, user_id: user.id },
             { onConflict: 'message_id,user_id' }
-          ).maybeSingle();
+          ).then(({ error }) => {
+            if (error) console.warn('[chat] realtime mark-read error:', error);
+          });
         }
       })
-      .subscribe();
+      .subscribe((status: string) => {
+        if (status !== 'SUBSCRIBED') console.warn('[chat] subscribe status:', status);
+      });
 
-    return () => { supabase.removeChannel(grp); };
+    return () => { supabase.removeChannel(channel); };
   }, [groupId]);
 
   // Load members
@@ -134,7 +167,7 @@ export function useChat(groupId: string) {
       sender_id: user.id,
       content: content.trim(),
       type,
-      metadata,
+      metadata: Object.keys(metadata).length ? metadata : undefined,
     });
     if (error) console.warn('[chat] send error:', error);
     setSending(false);

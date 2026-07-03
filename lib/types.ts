@@ -1,7 +1,7 @@
 export interface Group {
   id: string;
   name: string;
-  description?: string;
+  type?: string;
   created_by: string;
   avatar_url?: string;
   invite_code: string;
@@ -35,8 +35,9 @@ export interface MessageRead {
   read_at: string;
 }
 
-export interface PushToken {
+export interface Profile {
   id: string;
-  user_id: string;
-  token: string;
+  full_name?: string;
+  avatar_url?: string;
+  email?: string;
 }
