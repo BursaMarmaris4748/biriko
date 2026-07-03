@@ -4,6 +4,7 @@ export interface Group {
   description?: string;
   created_by: string;
   avatar_url?: string;
+  invite_code: string;
   created_at: string;
 }
 

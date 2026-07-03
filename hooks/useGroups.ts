@@ -1,7 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Group, GroupMember } from '@/lib/types';
-import RealtimeChannel from '@supabase/realtime-js';
+
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
 
 export function useGroups() {
   const [groups, setGroups] = useState<(Group & { unread?: number })[]>([]);
@@ -39,52 +45,70 @@ export function useGroups() {
 
   useEffect(() => { load(); }, [load]);
 
-  const createGroup = useCallback(async (name: string, memberEmails: string[]) => {
+  const createGroup = useCallback(async (name: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Giriş yapmalısın');
 
+    // Benzersiz davet kodu oluştur
+    let inviteCode: string;
+    let retries = 0;
+    while (true) {
+      inviteCode = generateInviteCode();
+      const { data: existing } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('invite_code', inviteCode)
+        .maybeSingle();
+      if (!existing) break;
+      retries++;
+      if (retries > 10) throw new Error('Davet kodu oluşturulamadı');
+    }
+
     const { data: group, error: gErr } = await supabase
       .from('groups')
-      .insert({ name, created_by: user.id })
+      .insert({ name, created_by: user.id, invite_code: inviteCode })
       .select()
       .single();
     if (gErr || !group) throw new Error(gErr?.message || 'Grup oluşturulamadı');
 
-    const memberIds: string[] = [user.id];
-    for (const email of memberEmails) {
-      const { data: u } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email.trim())
-        .maybeSingle();
-      if (u) memberIds.push(u.id);
-    }
-
-    const members = memberIds.map(uid => ({
-      group_id: group.id,
-      user_id: uid,
-      role: uid === user.id ? 'admin' : 'member',
-    }));
-    const { error: mErr } = await supabase.from('group_members').insert(members);
+    const { error: mErr } = await supabase
+      .from('group_members')
+      .insert({ group_id: group.id, user_id: user.id, role: 'admin' });
     if (mErr) throw new Error(mErr.message);
 
     await load();
     return group;
   }, [load]);
 
-  const addMember = useCallback(async (groupId: string, email: string) => {
-    const { data: u } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email.trim())
-      .maybeSingle();
-    if (!u) throw new Error('Kullanıcı bulunamadı');
+  const joinGroup = useCallback(async (inviteCode: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Giriş yapmalısın');
 
-    const { error } = await supabase
+    const code = inviteCode.toUpperCase().trim();
+    const { data: group, error: gErr } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('invite_code', code)
+      .maybeSingle();
+    if (gErr || !group) throw new Error('Geçersiz davet kodu');
+
+    // Zaten üye mi?
+    const { data: existing } = await supabase
       .from('group_members')
-      .insert({ group_id: groupId, user_id: u.id, role: 'member' });
-    if (error) throw new Error(error.message);
-  }, []);
+      .select('id')
+      .eq('group_id', group.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (existing) throw new Error('Bu gruba zaten üyesin');
+
+    const { error: mErr } = await supabase
+      .from('group_members')
+      .insert({ group_id: group.id, user_id: user.id, role: 'member' });
+    if (mErr) throw new Error(mErr.message);
+
+    await load();
+    return group;
+  }, [load]);
 
   const leaveGroup = useCallback(async (groupId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -97,5 +121,5 @@ export function useGroups() {
     await load();
   }, [load]);
 
-  return { groups, loading, reload: load, createGroup, addMember, leaveGroup };
+  return { groups, loading, reload: load, createGroup, joinGroup, leaveGroup };
 }

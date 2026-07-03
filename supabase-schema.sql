@@ -10,8 +10,11 @@ CREATE TABLE groups (
   description TEXT DEFAULT '',
   created_by UUID REFERENCES auth.users(id) NOT NULL,
   avatar_url TEXT,
+  invite_code TEXT UNIQUE NOT NULL DEFAULT upper(substr(md5(random()::text), 1, 6)),
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
+
+CREATE INDEX idx_groups_invite_code ON groups(invite_code);
 
 -- 2. Grup Üyeleri
 CREATE TABLE group_members (
