@@ -13,21 +13,10 @@ export default function ChatScreen() {
   const router = useRouter();
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const { colors } = useTheme();
-  const { messages, loading, sending, hasMore, loadMore, sendMessage, members } = useChat(groupId || '');
+  const { messages, loading, sending, hasMore, loadMore, sendMessage, members, currentUserId, groupName } = useChat(groupId || '');
   const flatRef = useRef<FlatList>(null);
   const [showTransactionShare, setShowTransactionShare] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const currentUserId = useRef<string | null>(null);
-
-  useEffect(() => {
-    import('@/lib/supabase').then(({ supabase }) => {
-      supabase.auth.getUser().then(({ data }) => {
-        currentUserId.current = data.user?.id || null;
-      });
-    });
-  }, []);
-
-  // Auto scroll on new messages
   const prevCount = useRef(messages.length);
   useEffect(() => {
     if (messages.length > prevCount.current) {
@@ -59,7 +48,7 @@ export default function ChatScreen() {
     if (hasMore && !loading) loadMore();
   };
 
-  const isOwn = (senderId: string) => senderId === currentUserId.current;
+  const isOwn = (senderId: string) => senderId === currentUserId;
 
   // Group messages by date
   const groupKey = (item: any) => {
@@ -105,7 +94,7 @@ export default function ChatScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <View className="flex-1">
-          <Text style={{ color: colors.text }} className="font-bold text-base">{groupId?.slice(0, 8)}...</Text>
+          <Text style={{ color: colors.text }} className="font-bold text-base">{groupName || 'Sohbet'}</Text>
           <Text style={{ color: colors.text3 }} className="text-xs">{members.length} üye</Text>
         </View>
       </View>

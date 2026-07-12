@@ -21,9 +21,16 @@ export function useChat(groupId: string) {
   const [sending, setSending] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [members, setMembers] = useState<string[]>([]);
+  const [groupName, setGroupName] = useState('');
   const currentUserId = useRef<string | null>(null);
   const oldestDate = useRef<string | null>(null);
   const loadedSenderIds = useRef<Set<string>>(new Set());
+
+  // Fetch group info
+  useEffect(() => {
+    supabase.from('groups').select('name').eq('id', groupId).single()
+      .then(({ data }) => { if (data) setGroupName(data.name); });
+  }, [groupId]);
 
   const attachSenders = useCallback(async (msgs: any[]): Promise<Message[]> => {
     const ids = [...new Set(msgs.map(m => m.sender_id).filter(Boolean))] as string[];
@@ -77,17 +84,15 @@ export function useChat(groupId: string) {
 
     setLoading(false);
 
-    // Mark as read
     if (!older && raw.length > 0) {
       const unreadIds = raw
         .filter(m => m.sender_id !== user.id)
         .map(m => m.id);
       if (unreadIds.length > 0) {
-        const { error: rErr } = await supabase.from('message_reads').upsert(
+        await supabase.from('message_reads').upsert(
           unreadIds.map(mid => ({ message_id: mid, user_id: user.id })),
           { onConflict: 'message_id,user_id' }
-        );
-        if (rErr) console.warn('[chat] mark-read error:', rErr);
+        ).maybeSingle();
       }
     }
   }, [groupId, attachSenders]);
@@ -105,42 +110,34 @@ export function useChat(groupId: string) {
         filter: `group_id=eq.${groupId}`,
       }, async (payload: any) => {
         const newMsg = payload.new;
-
-        // Fetch sender profile for new message
-        let sender = {};
+        let sender: Record<string, any> = {};
         try {
           const { data: s } = await supabase
             .from('profiles')
             .select('full_name, avatar_url, email')
             .eq('id', newMsg.sender_id)
-            .single();
+            .maybeSingle();
           if (s) sender = s;
         } catch {}
 
         setMessages(prev => {
           if (prev.some(m => m.id === newMsg.id)) return prev;
-          const msg: Message = {
+          return [...prev, {
             ...newMsg,
             metadata: typeof newMsg.metadata === 'string' ? JSON.parse(newMsg.metadata) : (newMsg.metadata || {}),
             sender,
-          };
-          return [...prev, msg];
+          } as Message];
         });
 
-        // Auto mark as read
         const { data: { user } } = await supabase.auth.getUser();
         if (user && newMsg.sender_id !== user.id) {
           supabase.from('message_reads').upsert(
             { message_id: newMsg.id, user_id: user.id },
             { onConflict: 'message_id,user_id' }
-          ).then(({ error }) => {
-            if (error) console.warn('[chat] realtime mark-read error:', error);
-          });
+          ).then();
         }
       })
-      .subscribe((status: string) => {
-        if (status !== 'SUBSCRIBED') console.warn('[chat] subscribe status:', status);
-      });
+      .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [groupId]);
@@ -177,5 +174,8 @@ export function useChat(groupId: string) {
     if (hasMore && !loading) fetchMessages(true);
   }, [hasMore, loading, fetchMessages]);
 
-  return { messages, loading, sending, hasMore, loadMore, sendMessage, members, currentUserId: currentUserId.current };
+  return {
+    messages, loading, sending, hasMore, loadMore, sendMessage,
+    members, currentUserId: currentUserId.current, groupName,
+  };
 }
