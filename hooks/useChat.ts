@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Message } from '@/lib/types';
 
@@ -6,13 +7,16 @@ const PAGE_SIZE = 50;
 
 async function fetchSenders(senderIds: string[]): Promise<Record<string, any>> {
   if (!senderIds.length) return {};
-  const { data } = await supabase
-    .from('profiles')
-    .select('id, full_name, avatar_url, email')
-    .in('id', senderIds);
-  const map: Record<string, any> = {};
-  (data || []).forEach(p => { map[p.id] = p; });
-  return map;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url, email')
+      .in('id', senderIds);
+    if (error) { console.warn('[chat] fetchSenders error:', error.message); return {}; }
+    const map: Record<string, any> = {};
+    (data || []).forEach(p => { map[p.id] = p; });
+    return map;
+  } catch (e) { console.warn('[chat] fetchSenders exception:', e); return {}; }
 }
 
 export function useChat(groupId: string) {
@@ -28,8 +32,15 @@ export function useChat(groupId: string) {
 
   // Fetch group info
   useEffect(() => {
-    supabase.from('groups').select('name').eq('id', groupId).single()
-      .then(({ data }) => { if (data) setGroupName(data.name); });
+    supabase
+      .from('groups')
+      .select('name')
+      .eq('id', groupId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) console.warn('[chat] group fetch error:', error.message);
+        if (data) setGroupName(data.name);
+      });
   }, [groupId]);
 
   const attachSenders = useCallback(async (msgs: any[]): Promise<Message[]> => {
@@ -41,18 +52,18 @@ export function useChat(groupId: string) {
       return msgs.map(m => ({
         ...m,
         sender: senderMap[m.sender_id] || {},
-        metadata: typeof m.metadata === 'string' ? JSON.parse(m.metadata) : (m.metadata || {}),
+        metadata: typeof m.metadata === 'string' ? safeParse(m.metadata) : (m.metadata || {}),
       })) as Message[];
     }
     return msgs.map(m => ({
       ...m,
-      metadata: typeof m.metadata === 'string' ? JSON.parse(m.metadata) : (m.metadata || {}),
+      metadata: typeof m.metadata === 'string' ? safeParse(m.metadata) : (m.metadata || {}),
     })) as Message[];
   }, []);
 
   const fetchMessages = useCallback(async (older = false) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
+    if (!user) { console.warn('[chat] no user'); setLoading(false); return; }
     currentUserId.current = user.id;
 
     let query = supabase
@@ -68,7 +79,11 @@ export function useChat(groupId: string) {
     query = query.limit(PAGE_SIZE);
 
     const { data, error } = await query;
-    if (error) { console.warn('[chat] fetch error:', error); setLoading(false); return; }
+    if (error) {
+      console.warn('[chat] fetch error:', error.message);
+      setLoading(false);
+      return;
+    }
 
     const raw = (data as any[] || []).reverse();
     const withSenders = await attachSenders(raw);
@@ -84,10 +99,9 @@ export function useChat(groupId: string) {
 
     setLoading(false);
 
+    // Mark as read
     if (!older && raw.length > 0) {
-      const unreadIds = raw
-        .filter(m => m.sender_id !== user.id)
-        .map(m => m.id);
+      const unreadIds = raw.filter(m => m.sender_id !== user.id).map(m => m.id);
       if (unreadIds.length > 0) {
         await supabase.from('message_reads').upsert(
           unreadIds.map(mid => ({ message_id: mid, user_id: user.id })),
@@ -124,18 +138,21 @@ export function useChat(groupId: string) {
           if (prev.some(m => m.id === newMsg.id)) return prev;
           return [...prev, {
             ...newMsg,
-            metadata: typeof newMsg.metadata === 'string' ? JSON.parse(newMsg.metadata) : (newMsg.metadata || {}),
+            metadata: typeof newMsg.metadata === 'string' ? safeParse(newMsg.metadata) : (newMsg.metadata || {}),
             sender,
           } as Message];
         });
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && newMsg.sender_id !== user.id) {
-          supabase.from('message_reads').upsert(
-            { message_id: newMsg.id, user_id: user.id },
-            { onConflict: 'message_id,user_id' }
-          ).then();
-        }
+        // Auto mark as read
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user && newMsg.sender_id !== user.id) {
+            await supabase.from('message_reads').upsert(
+              { message_id: newMsg.id, user_id: user.id },
+              { onConflict: 'message_id,user_id' }
+            );
+          }
+        } catch {}
       })
       .subscribe();
 
@@ -144,20 +161,26 @@ export function useChat(groupId: string) {
 
   // Load members
   useEffect(() => {
-    supabase.from('group_members')
+    supabase
+      .from('group_members')
       .select('user_id')
       .eq('group_id', groupId)
       .eq('status', 'active')
       .then(({ data }) => setMembers((data || []).map(m => m.user_id)));
   }, [groupId]);
 
+  // sendMessage: hata varsa Alert ile göster
   const sendMessage = useCallback(async (
     type: 'text' | 'image' | 'transaction',
     content: string,
     metadata: Record<string, any> = {}
   ) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !content.trim()) return;
+    if (!user) {
+      Alert.alert('Hata', 'Oturum açman gerekiyor.');
+      return;
+    }
+    if (!content.trim()) return;
     setSending(true);
     const { error } = await supabase.from('messages').insert({
       group_id: groupId,
@@ -166,7 +189,10 @@ export function useChat(groupId: string) {
       type,
       metadata: Object.keys(metadata).length ? metadata : undefined,
     });
-    if (error) console.warn('[chat] send error:', error);
+    if (error) {
+      console.warn('[chat] send error:', error.code, error.message);
+      Alert.alert('Mesaj gönderilemedi', `[${error.code}] ${error.message}`);
+    }
     setSending(false);
   }, [groupId]);
 
@@ -178,4 +204,9 @@ export function useChat(groupId: string) {
     messages, loading, sending, hasMore, loadMore, sendMessage,
     members, currentUserId: currentUserId.current, groupName,
   };
+}
+
+function safeParse(s: any): Record<string, any> {
+  try { return typeof s === 'string' ? JSON.parse(s) : (s || {}); }
+  catch { return {}; }
 }
