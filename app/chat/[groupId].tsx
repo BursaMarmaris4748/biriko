@@ -119,30 +119,33 @@ export default function ChatScreen() {
           <ActivityIndicator size="large" color={colors.accent} />
         </View>
       ) : (
-        <View className="flex-1">
-          {messages.length === 0 ? (
-            <View className="flex-1 items-center justify-center px-10">
-              <MaterialCommunityIcons name="chat-outline" size={64} color={colors.text3} />
-              <Text style={{ color: colors.text }} className="text-lg font-bold mt-4">Henüz mesaj yok</Text>
-              <Text style={{ color: colors.text3 }} className="text-sm mt-2 text-center">İlk mesajı sen yaz</Text>
-            </View>
-          ) : (
-            <FlatList
-              ref={flatRef}
-              data={messages}
-              keyExtractor={m => m.id}
-              renderItem={renderItem}
-              className="flex-1"
-              contentContainerStyle={{ paddingVertical: 12 }}
-              showsVerticalScrollIndicator={false}
-              onEndReached={handleLoadMore}
-              onEndReachedThreshold={0.3}
-              ListFooterComponent={hasMore && !loading ? <ActivityIndicator size="small" color={colors.accent} style={{ paddingVertical: 12 }} /> : null}
-              keyboardShouldPersistTaps="handled"
-            />
-          )}
-          {/* Input — klavye varsa klavye yüksekliği kadar itili yukarı */}
-          <View style={{ paddingBottom: keyboardHeight }}>
+        <View className="flex-1 relative">
+          {/* Mesajlar — input için altta yer bırak */}
+          <View style={{ flex: 1, paddingBottom: 56 }}>
+            {messages.length === 0 ? (
+              <View className="flex-1 items-center justify-center px-10">
+                <MaterialCommunityIcons name="chat-outline" size={64} color={colors.text3} />
+                <Text style={{ color: colors.text }} className="text-lg font-bold mt-4">Henüz mesaj yok</Text>
+                <Text style={{ color: colors.text3 }} className="text-sm mt-2 text-center">İlk mesajı sen yaz</Text>
+              </View>
+            ) : (
+              <FlatList
+                ref={flatRef}
+                data={messages}
+                keyExtractor={m => m.id}
+                renderItem={renderItem}
+                contentContainerStyle={{ paddingVertical: 12 }}
+                showsVerticalScrollIndicator={false}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.3}
+                ListFooterComponent={hasMore && !loading ? <ActivityIndicator size="small" color={colors.accent} style={{ paddingVertical: 12 }} /> : null}
+                keyboardShouldPersistTaps="handled"
+              />
+            )}
+          </View>
+
+          {/* Input — klavye varsa sadece klavye yüksekliği kadar yukarı it */}
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: keyboardHeight }}>
             <MessageInput
               onSendText={handleSendText}
               onSendImage={handleSendImage}
