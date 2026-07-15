@@ -87,7 +87,7 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']} className="flex-1">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']} className="flex-1">
       {/* Header */}
       <View className="flex-row items-center px-4 py-3" style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <TouchableOpacity onPress={() => router.back()} className="mr-3">

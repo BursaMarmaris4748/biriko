@@ -80,22 +80,22 @@ export default function MessageInput({ onSendText, onSendImage, onShareTransacti
 
   return (
     <View
-      className="flex-row items-end px-3 py-2 border-t"
+      className="flex-row items-center px-2 py-1.5 border-t"
       style={{ backgroundColor: colors.card, borderTopColor: colors.border }}
     >
-      <TouchableOpacity onPress={handlePickImage} className="p-2 mb-0.5">
-        <MaterialCommunityIcons name="image-outline" size={22} color={colors.text3} />
+      <TouchableOpacity onPress={handlePickImage} className="p-1.5">
+        <MaterialCommunityIcons name="image-outline" size={20} color={colors.text3} />
       </TouchableOpacity>
-      <TouchableOpacity onPress={handleCameraImage} className="p-2 mb-0.5">
-        <MaterialCommunityIcons name="camera-outline" size={22} color={colors.text3} />
+      <TouchableOpacity onPress={handleCameraImage} className="p-1.5">
+        <MaterialCommunityIcons name="camera-outline" size={20} color={colors.text3} />
       </TouchableOpacity>
-      <TouchableOpacity onPress={onShareTransaction} className="p-2 mb-0.5">
-        <MaterialCommunityIcons name="swap-horizontal-bold" size={22} color={colors.text3} />
+      <TouchableOpacity onPress={onShareTransaction} className="p-1.5">
+        <MaterialCommunityIcons name="swap-horizontal-bold" size={20} color={colors.text3} />
       </TouchableOpacity>
-      <View className="flex-1 mx-1 rounded-xl px-3" style={{ backgroundColor: colors.inputBg, minHeight: 40, justifyContent: 'center' }}>
+      <View className="flex-1 mx-1 rounded-xl px-3" style={{ backgroundColor: colors.inputBg, minHeight: 36, justifyContent: 'center' }}>
         <TextInput
-          style={{ color: colors.text, maxHeight: 100 }}
-          className="text-sm py-2"
+          style={{ color: colors.text, maxHeight: 80 }}
+          className="text-sm py-1.5"
           placeholder="Mesaj yaz..."
           placeholderTextColor={colors.text3}
           multiline
@@ -109,13 +109,13 @@ export default function MessageInput({ onSendText, onSendImage, onShareTransacti
       <TouchableOpacity
         onPress={handleSend}
         disabled={!text.trim() || sending}
-        className="w-10 h-10 rounded-full items-center justify-center ml-1"
+        className="w-9 h-9 rounded-full items-center justify-center ml-1"
         style={{ backgroundColor: text.trim() ? colors.accent : colors.border }}
       >
         {sending ? (
           <ActivityIndicator size="small" color="#fff" />
         ) : (
-          <MaterialCommunityIcons name="send" size={18} color={text.trim() ? '#fff' : colors.text3} />
+          <MaterialCommunityIcons name="send" size={16} color={text.trim() ? '#fff' : colors.text3} />
         )}
       </TouchableOpacity>
     </View>
