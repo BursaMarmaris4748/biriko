@@ -107,8 +107,8 @@ export default function ChatScreen() {
       ) : (
         <KeyboardAvoidingView
           className="flex-1"
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 56}
         >
           {messages.length === 0 ? (
             <View className="flex-1 items-center justify-center px-10">
