@@ -99,16 +99,10 @@ export default function ChatScreen() {
         </View>
       </View>
 
-      {/* Messages */}
+      {/* Messages + Input (her zaman görünür) */}
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.accent} />
-        </View>
-      ) : messages.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-10">
-          <MaterialCommunityIcons name="chat-outline" size={64} color={colors.text3} />
-          <Text style={{ color: colors.text }} className="text-lg font-bold mt-4">Henüz mesaj yok</Text>
-          <Text style={{ color: colors.text3 }} className="text-sm mt-2 text-center">İlk mesajı sen yaz</Text>
         </View>
       ) : (
         <KeyboardAvoidingView
@@ -116,19 +110,27 @@ export default function ChatScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          <FlatList
-            ref={flatRef}
-            data={messages}
-            keyExtractor={m => m.id}
-            renderItem={renderItem}
-            className="flex-1"
-            contentContainerStyle={{ paddingVertical: 12 }}
-            showsVerticalScrollIndicator={false}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.3}
-            ListFooterComponent={hasMore && !loading ? <ActivityIndicator size="small" color={colors.accent} style={{ paddingVertical: 12 }} /> : null}
-            keyboardShouldPersistTaps="handled"
-          />
+          {messages.length === 0 ? (
+            <View className="flex-1 items-center justify-center px-10">
+              <MaterialCommunityIcons name="chat-outline" size={64} color={colors.text3} />
+              <Text style={{ color: colors.text }} className="text-lg font-bold mt-4">Henüz mesaj yok</Text>
+              <Text style={{ color: colors.text3 }} className="text-sm mt-2 text-center">İlk mesajı sen yaz</Text>
+            </View>
+          ) : (
+            <FlatList
+              ref={flatRef}
+              data={messages}
+              keyExtractor={m => m.id}
+              renderItem={renderItem}
+              className="flex-1"
+              contentContainerStyle={{ paddingVertical: 12 }}
+              showsVerticalScrollIndicator={false}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.3}
+              ListFooterComponent={hasMore && !loading ? <ActivityIndicator size="small" color={colors.accent} style={{ paddingVertical: 12 }} /> : null}
+              keyboardShouldPersistTaps="handled"
+            />
+          )}
           <MessageInput
             onSendText={handleSendText}
             onSendImage={handleSendImage}
