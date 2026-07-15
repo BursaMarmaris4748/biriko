@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Platform, Alert, Image, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/contexts/theme-context';
@@ -17,7 +18,20 @@ export default function ChatScreen() {
   const flatRef = useRef<FlatList>(null);
   const [showTransactionShare, setShowTransactionShare] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const prevCount = useRef(messages.length);
+
+  // Klavye yüksekliğini dinle
+  useEffect(() => {
+    const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
   useEffect(() => {
     if (messages.length > prevCount.current) {
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
@@ -105,11 +119,7 @@ export default function ChatScreen() {
           <ActivityIndicator size="large" color={colors.accent} />
         </View>
       ) : (
-        <KeyboardAvoidingView
-          className="flex-1"
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 56}
-        >
+        <View className="flex-1">
           {messages.length === 0 ? (
             <View className="flex-1 items-center justify-center px-10">
               <MaterialCommunityIcons name="chat-outline" size={64} color={colors.text3} />
@@ -131,13 +141,16 @@ export default function ChatScreen() {
               keyboardShouldPersistTaps="handled"
             />
           )}
-          <MessageInput
-            onSendText={handleSendText}
-            onSendImage={handleSendImage}
-            onShareTransaction={() => setShowTransactionShare(true)}
-            sending={sending}
-          />
-        </KeyboardAvoidingView>
+          {/* Input — klavye varsa klavye yüksekliği kadar itili yukarı */}
+          <View style={{ paddingBottom: keyboardHeight }}>
+            <MessageInput
+              onSendText={handleSendText}
+              onSendImage={handleSendImage}
+              onShareTransaction={() => setShowTransactionShare(true)}
+              sending={sending}
+            />
+          </View>
+        </View>
       )}
 
       {/* Transaction Share Modal */}
