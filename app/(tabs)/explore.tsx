@@ -145,7 +145,7 @@ export default function BirikimScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f2f5f9]" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-[#f2f5f9]" edges={['top', 'bottom']}>
       {/* Header */}
       <View className="px-5 pt-3 pb-4">
         <View className="flex-row items-center justify-between">

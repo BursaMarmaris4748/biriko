@@ -1,6 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
 import { Platform, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/theme-context';
 import { HapticTab } from '@/components/haptic-tab';
@@ -8,6 +9,11 @@ import { HapticTab } from '@/components/haptic-tab';
 export default function TabLayout() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  // Alt sistem gesture bar / sanal tuşlar için ek güvenli alan
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'ios' ? 0 : 8);
+  const tabBarHeight = (Platform.OS === 'ios' ? 96 : 76) + bottomInset;
 
   return (
     <Tabs
@@ -22,8 +28,8 @@ export default function TabLayout() {
           shadowOffset: { width: 0, height: -2 },
           shadowRadius: 8,
           shadowColor: '#000',
-          height: Platform.OS === 'ios' ? 96 : 76,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          height: tabBarHeight,
+          paddingBottom: (Platform.OS === 'ios' ? 28 : 8) + bottomInset,
           paddingTop: 8,
         },
         tabBarActiveTintColor: colors.accent,

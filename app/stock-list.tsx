@@ -54,7 +54,7 @@ export default function StockListScreen() {
   });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']}>
       {/* Header */}
       <View className="flex-row items-center px-5 pt-3 pb-2">
         <TouchableOpacity onPress={() => router.back()} className="mr-3">

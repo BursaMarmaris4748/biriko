@@ -129,7 +129,7 @@ export default function StockDetailScreen() {
   const exColor = exchange === 'BIST' ? '#E11D48' : '#2563EB';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']}>
       {/* Header */}
       <View className="flex-row items-center px-5 pt-3 pb-3" style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <TouchableOpacity onPress={() => router.back()} className="mr-3">

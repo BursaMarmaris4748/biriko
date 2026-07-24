@@ -53,7 +53,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']}>
       <GelirGiderKarti
         onGelirEkle={handleGelirEkle}
         onGiderEkle={handleGiderEkle}
